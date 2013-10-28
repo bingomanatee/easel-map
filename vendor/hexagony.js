@@ -128,13 +128,14 @@ if (typeof module == 'undefined') {
         window.HEXAGONY.Hex = Hex;
     }
 })(window);;
-(function () {
+(function (window) {
 
     if (typeof module != 'undefined') {
         var Hex = require('./Hex');
         var _ = require('underscore');
     } else {
         var Hex = HEXAGONY.Hex;
+        var _ = window._;
     }
 
     /* ------------ CLOSURE --------------- */
@@ -209,13 +210,14 @@ if (typeof module == 'undefined') {
 
     /* -------------- EXPORT --------------- */
 
-    if (typeof module != undefined) {
+    if (typeof module != 'undefined') {
 
         module.exports = generate_hexes;
     } else {
         HEXAGONY.generate_hexes = generate_hexes;
+        var _ = window._;
     }
-})();;
+})(window);;
 (function (window) {
     if (typeof module != 'undefined') {
         var Hex = require('./Hex');

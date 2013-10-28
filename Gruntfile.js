@@ -11,16 +11,22 @@ module.exports = function (grunt) {
             dist: {
                 src: [
                     'vendor/underscore.1.5.2.min.js',
+                    'vendor/hexagony.js',
                     'lib/index.js',
-                    "lib/map/index.js"
+                    'lib/util/grid_extent.js',
+                    'lib/map/index.js',
+                    'lib/map/render.js',
+                    'lib/layer/index.js',
+                    'lib/hex/index.js',
+                    'lib/grid/index.js'
                 ],
                 dest: 'build/easel-mapper.js'
             }
         },
         uglify: {
             options: {
-                mangle: true,
-                compress: true,
+                mangle: false,
+                compress: false,
                 banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
             },
             build: {
