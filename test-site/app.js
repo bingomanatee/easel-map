@@ -5,10 +5,13 @@ var st = require('node-static');
 var file = new st.Server('./public');
 
 require('http').createServer(function (request, response) {
-    request.addListener('end', function () {
+    console.log('started server...');
+    request.addListener('end',function () {
         //
         // Serve files!
         //
+        console.log('serving file...%s', request.url);
+
         file.serve(request, response);
     }).resume();
 }).listen(8080);
