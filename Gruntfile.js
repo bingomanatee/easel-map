@@ -11,7 +11,6 @@ module.exports = function (grunt) {
             dist: {
                 src: [
                     'vendor/underscore.1.5.2.min.js',
-                    'vendor/hexagony.js',
                     'lib/index.js',
                     'lib/util/grid_extent.js',
                     'lib/map/index.js',
