@@ -16,6 +16,8 @@ module.exports = function (grunt) {
                     'lib/map/index.js',
                     'lib/map/render.js',
                     'lib/layer/index.js',
+                    'lib/hex/Hex_Cell.js',
+                    'lib/hex/render.js',
                     'lib/hex/index.js',
                     'lib/grid/index.js'
                 ],
