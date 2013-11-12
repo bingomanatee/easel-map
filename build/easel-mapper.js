@@ -72,9 +72,10 @@ var EASEL_MAP = {
 (function (w) {
 
 
-    EASEL_MAP.Map.prototype.render = function (params, canvas, stage) {
+    EASEL_MAP.Map.prototype.render = function (params, stage, canvas ) {
 
         if (!stage) {
+            if (!canvas) throw new Error("must provide stage or canvas to render");
             stage = new createjs.Stage(canvas);
         }
 
@@ -141,7 +142,7 @@ var EASEL_MAP = {
 
     };
 })(window);;
-(function(){
+(function () {
 
     function _rc() {
         return _.shuffle(['red', 'green', 'blue', 'cyan', 'magenta', 'orange'])[0];
@@ -154,6 +155,7 @@ var EASEL_MAP = {
     var COS_30_x_3_div_2 = COS_30 * 3 / 2;
     var COS_30_div_2 = COS_30 / 2;
 
+    var CACHED_HEXES = {};
 
     /**
      * Hex_Cell is a polygon circumscribed in a circle
@@ -169,31 +171,29 @@ var EASEL_MAP = {
      * @constructor
      */
 
-    EASEL_MAP.class.Hex_Cell = function (i, j, hex_size, points) {
+    EASEL_MAP.class.Hex_Cell = function (i, j, hex_size) {
         this.hex_size = hex_size;
         this.row = i;
         this.col = j;
-
-        if (!points) {
-            this.calc_points();
-        } else {
-            this.points = points;
-        }
     };
 
     EASEL_MAP.class.Hex_Cell.prototype = {
-        calc_points: function () {
+        calc_points: function (scale) {
+            if (!scale) scale = 1;
+            if (this.points) {
+                return this.points;
+            }
             var xs = [
-                -this.hex_size,
-                -this.hex_size * SIN_30,
-                this.hex_size * SIN_30,
-                this.hex_size
+                -this.hex_size * scale,
+                -this.hex_size * SIN_30 * scale,
+                this.hex_size * SIN_30 * scale,
+                this.hex_size * scale
             ];
 
             var ys = [
-                -this.hex_size * COS_30,
+                -this.hex_size * COS_30 * scale,
                 0,
-                this.hex_size * COS_30];
+                this.hex_size * COS_30 * scale];
 
             this.points = [
                 {x: xs[0], y: ys[1]} ,
@@ -202,11 +202,14 @@ var EASEL_MAP = {
                 {x: xs[3], y: ys[1]},
                 {x: xs[2], y: ys[2]},
                 {x: xs[1], y: ys[2]}
-            ]
+            ];
+
+            // console.log('points: ', this.points);
+            return this.points;
         },
 
-        ij_index: function(){
-          return Math.floor(this.row/10) + '_' + Math.floor(this.col/10);
+        ij_index: function () {
+            return Math.floor(this.row / 10) + '_' + Math.floor(this.col / 10);
         },
 
         center: function () {
@@ -217,24 +220,20 @@ var EASEL_MAP = {
             return new EASEL_MAP.class.Hex_Cell(this.row, this.col, this.hex_size);
         },
 
-        draw_circle: function (container) {
-            var shape = new createjs.Shape();
-            var text = new createjs.Text(this.row + ',' + this.col, this.hex_size + 'px Arial', 'black');
-            text.x = shape.x = this.center_x();
-            text.y = shape.y = this.center_y();
-            text.textAlign = 'center';
-            text.textBaseline = 'bottom';
+        circle_fill: function (container, color, shape, scale, cache) {
+            var refresh = !!shape;
+            if (!shape) shape = new createjs.Shape();
+            shape.graphics.f(color);
+            shape.x = this.center_x();
+            shape.y = this.center_y();
 
-            shape.graphics.s(_rc()).dc(0, 0, this.hex_size)
-                .mt(0, -this.hex_size).lt(0, this.hex_size)
-                .mt(-this.hex_size, 0).lt(this.hex_size, 0)
-                .mt(-this.hex_size * COS_30 / 2, -this.hex_size * COS_30)
-                .lt(this.hex_size * COS_30 / 2, this.hex_size * COS_30)
-                .mt(this.hex_size * COS_30 / 2, -this.hex_size * COS_30)
-                .lt(-this.hex_size * COS_30 / 2, this.hex_size * COS_30)
-                .es();
-            container.addChild(text);
+            shape.graphics.dc(0, 0, this.hex_size * ((1 + COS_30)/2));
+
             container.addChild(shape);
+
+            var extent = Math.ceil(this.hex_size) + 1;
+
+            if (cache) shape.cache(-extent, -extent, 2 * extent, 2 * extent, scale);
             return shape;
         },
 
@@ -243,8 +242,8 @@ var EASEL_MAP = {
             var text = new createjs.Text(this.row + ',' + this.col, (this.hex_size / 2) + 'px Arial', 'black');
             text.x = shape.x = this.center_x();
             text.y = shape.y = this.center_y();
-            shape.graphics.ss(width).s(color);
-            var points = this.points;
+            shape.graphics.ss(width, 'round', 10, true).s(color);
+            var points = this.calc_points();
 
             shape.graphics.mt(_.last(points).x, _.last(points).y);
             _.each(points, function (point) {
@@ -259,26 +258,37 @@ var EASEL_MAP = {
             return shape;
         },
 
-        fill: function (container, color, shape, scale) {
-            var refresh = !!shape;
-            if (!shape) shape = new createjs.Shape();
+        _make_hex: function (color, scale) {
+            var shape = new createjs.Shape();
             shape.graphics.f(color);
-            shape.x = this.center_x();
-            shape.y = this.center_y();
-            var points = this.points;
+            var points = this.calc_points();
 
             shape.graphics.mt(_.last(points).x, _.last(points).y);
             _.each(points, function (point) {
                 shape.graphics.lt(point.x, point.y);
 
             });
-            shape.graphics.es();
-            // container.addChild(text);
+
+            var extent = Math.ceil(this.hex_size ) + 1;
+
+            shape.cache(-extent, -extent, 2 * extent, 2 * extent, scale);
+            CACHED_HEXES[color] = shape.cacheCanvas;
+        },
+
+        fill: function (container, color, shape, scale, cache) {
+
+            if (!CACHED_HEXES[color]) {
+                this._make_hex(color);
+            }
+
+            var refresh = !shape;
+            if (refresh) shape = new createjs.Bitmap(CACHED_HEXES[color]);
+            shape.x = this.center_x() - (this.hex_size );
+            shape.y = this.center_y() - (this.hex_size);
+         //   shape.scaleX = shape.scaleY = 1/scale;
             container.addChild(shape);
 
             var extent = Math.ceil(this.hex_size) + 1;
-
-            shape.cache(-extent, -extent, 2 * extent, 2 * extent, scale);
             return shape;
         },
 
@@ -348,7 +358,7 @@ var EASEL_MAP = {
                     base = render_params.stroke_width;
                 }
             }
-            return base / render_params.scale;
+            return base;// / render_params.scale;
         }
 
     };
@@ -358,8 +368,9 @@ var EASEL_MAP = {
 
     EASEL_MAP._proto.hex_layer = {
         /**
-         * ensures that there is a grid container that can be scaled, offset, etc;
-         * within that container are two containers,
+         * ensures that there is a grid_container that can be scaled.
+         * within the grid container is grid_container_t that can be offset.
+         * within grid_container_t are two containers,
          *   - the fill container and the outline container.
          *   - the outline can be cached every time the position/scale has not changed.
          * @returns {Container}
@@ -368,33 +379,36 @@ var EASEL_MAP = {
          * @param params {Object}
          * @returns {Container|*}
          */
-        ensure_grid_container: function (stage, params) {
-            if (!this.grid_container) {
+        reset: function (stage, params) {
+            if (this.grid_container) {
+                this.grid_container_t.removeAllChildren();
+            } else {
                 this.grid_container = new createjs.Container();
                 this.grid_container.name = 'grid';
                 this.container.addChild(this.grid_container);
 
-                var fills = new createjs.Container();
-                fills.name = 'fills';
-                this.grid_container.addChild(fills);
-                this.fill_container = fills;
-
-                var outlines = new createjs.Container();
-                outlines.name = 'fills';
-                this.grid_container.addChild(outlines);
-                this.outlines_container = outlines;
-            } else { //@TODO: remove if caching is implemented
-                this.fill_container.removeAllChildren();
-                this.outlines_container.removeAllChildren();
+                this.grid_container_t = new createjs.Container();
+                this.grid_container_t.name = 'grid_t';
+                this.grid_container.addChild(this.grid_container_t);
             }
+
+            var fills = new createjs.Container();
+            fills.name = 'fills';
+            this.grid_container_t.addChild(fills);
+            this.fill_container = fills;
+
+            var outlines = new createjs.Container();
+            outlines.name = 'outlines';
+            this.grid_container_t.addChild(outlines);
+            this.outlines_container = outlines;
         },
 
-        group_cells: function(){
+        group_cells: function () {
 
             this.fill_container.removeAllChildren();
-            var groups = this.cells.reduce(function(out, cell){
+            var groups = this.cells.reduce(function (out, cell) {
 
-                if (!out[cell.ij_index()]){
+                if (!out[cell.ij_index()]) {
                     out[cell.ij_index()] = [];
                 }
 
@@ -403,37 +417,37 @@ var EASEL_MAP = {
                 return out;
 
             }, {});
+            console.log('cells: ', this.cells.length);
 
             this.fill_group_containers = {};
-            _.each(groups, function(cells, name){
+            _.each(groups, function (cells, name) {
                 var group_container = new createjs.Container();
 
                 var cell = cells[0];
 
-               var min_x = cell.fill_shape.x;
+                var min_x = cell.fill_shape.x;
                 var min_y = cell.fill_shape.y;
                 var max_x = min_x;
                 var max_y = min_y;
 
-               cells.forEach(function(cell){
-                   group_container.addChild(cell.fill_shape);
-                   cell.group_container = group_container;
-                   group_container.name = name;
+                cells.forEach(function (cell) {
+                    group_container.addChild(cell.fill_shape);
+                    cell.group_container = group_container;
+                    group_container.name = name;
 
-                   min_x = Math.min(min_x, cell.fill_shape.x);
-                   max_x = Math.max(max_x, cell.fill_shape.x);
+                    min_x = Math.min(min_x, cell.fill_shape.x);
+                    max_x = Math.max(max_x, cell.fill_shape.x);
 
-                   min_y = Math.min(min_y, cell.fill_shape.y);
-                   max_y = Math.max(max_y, cell.fill_shape.y);
-                   cell.fill_shape.updateCache();
-               });
-
+                    min_y = Math.min(min_y, cell.fill_shape.y);
+                    max_y = Math.max(max_y, cell.fill_shape.y);
+                //    cell.updateCache();
+                });
 
                 min_x -= cell.hex_size;
                 min_y -= cell.hex_size;
                 max_y += cell.hex_size;
                 max_x += cell.hex_size;
-                console.log('caching group ', name, min_x, min_y, max_x - min_x, max_y - min_y);
+                // console.log('caching group ', name, min_x, min_y, max_x - min_x, max_y - min_y);
                 group_container.cache(min_x, min_y, max_x - min_x, max_y - min_y);
                 this.fill_container.addChild(group_container);
                 this.fill_group_containers[name] = group_container;
@@ -442,9 +456,20 @@ var EASEL_MAP = {
         },
 
         cell_range: function (stage, render_params) {
+            var moved = false;
+            if (this._last_rp) {
+                moved = true;
+            }
 
             var goc = this.outlines_container;
+            var gc = this.grid_container;
             var gp = this.grid_params;
+            if (moved) { //@TODO: more granular comparison
+                goc.removeAllChildren();
+                goc.uncache();
+                gc.removeAllChildren();
+            }
+            this._last_rp = render_params;
             var cells = [];
             this.cells = cells;
 
@@ -458,7 +483,6 @@ var EASEL_MAP = {
             top_left_hex.row = est_row;
             top_left_hex.col = est_col;
 
-            goc.removeAllChildren();
 
             do {
                 ++top_left_hex.col
@@ -475,8 +499,6 @@ var EASEL_MAP = {
             }
             --top_left_hex.col;
             --top_left_hex.col;
-
-            top_left_hex.draw_circle(goc);
 
             var bottom_right_hex = top_left_hex.clone();
             while (bottom_right_hex.global(goc).x < stage.canvas.width) {
@@ -497,22 +519,34 @@ var EASEL_MAP = {
         },
 
         render_sublayers: function (render_params) {
-
             var scale = render_params.scale || 1;
-
             var gc = this.grid_container;
             gc.scaleX = gc.scaleY = scale;
-            var goc = this.outlines_container;
-            goc.x = render_params.left;
-            goc.y = render_params.top;
+            var gct = this.grid_container_t;
+            gct.x = render_params.left;
+            gct.y = render_params.top;
 
+        },
+
+        draw_scale: function (s) {
+            var size = s * this.grid_params.hex_size;
+            console.log('size: ', size);
+            if (size > 50) {
+                return 3;
+            } else if (size > 20) {
+                return 2;
+            } else if (size > 10) {
+                return 1;
+            } else {
+                return 0;
+            }
         },
 
         render: function (stage, render_params) {
             console.log('rendering hexes');
             render_params = _.defaults(render_params, {scale: 1, left: 0, top: 0});
 
-            this.ensure_grid_container();
+            this.reset();
             this.render_sublayers(render_params);
             var goc = this.outlines_container;
             var range = this.cell_range(stage);
@@ -522,29 +556,49 @@ var EASEL_MAP = {
             var bottom_right_hex = range.bottom_right_hex;
 
             var self = this;
+            var draw_scale = this.draw_scale(render_params.scale);
             _.each(_.range(top_left_hex.row, bottom_right_hex.row), function (row) {
                 _.each(_.range(top_left_hex.col, bottom_right_hex.col), function (col) {
                     var cell = new EASEL_MAP.class.Hex_Cell(row, col, self.grid_params.hex_size);
-                    cell.outline(goc, cell.stroke_color(render_params), cell.stroke_width(render_params), null, render_params.scale);
                     var color = cell.fill_color(render_params);
-                    cell.fill_shape = cell.fill(fc, color, null, render_params.scale);
-                    //  cell.fill_shape.on('click', self.click_handler(cell));
+
+                    switch (draw_scale) {
+                        case 3:
+                            cell.outline(goc, cell.stroke_color(render_params), cell.stroke_width(render_params), null, render_params.scale);
+                            cell.fill_shape = cell.fill(fc, color, null, render_params.scale);
+                            break;
+
+                        case 2:
+                            cell.fill_shape = cell.fill(fc, color, null, render_params.scale);
+                            break;
+
+                        case 1:
+                            cell.fill_shape = cell.circle_fill(fc, color, null, render_params.scale);
+                            break;
+
+                        default:
+                            cell.fill_shape = cell.circle_fill(fc, color, null, render_params.scale);
+
+                    }
                     cell.fill_shape.on('click', self.click_handler(cell));
-                 //   cell.fill_shape.on('mouseover', self.over_handler(cell));
-                  //  cell.fill_shape.on('pressup', self.up_handler(cell));
                     self.cells.push(cell);
                 })
             });
 
-            if (this.cells.length > 100){
-                this.group_cells();
+            if (this.cells.length > 100) {
+             //   this.group_cells();
             }
 
             var tl = goc.globalToLocal(0, 0);
             var wh = goc.globalToLocal(stage.canvas.width, stage.canvas.height);
 
             // caching outline layer
-            goc.cache(Math.floor(tl.x), Math.floor(tl.y), Math.ceil(wh.x - tl.x) + 2, Math.ceil(wh.y - tl.y) + 2);
+            if (draw_scale > 1)   goc.cache(
+                Math.floor(tl.x),
+                Math.floor(tl.y),
+                Math.ceil(wh.x - tl.x) + 2,
+                Math.ceil(wh.y - tl.y) + 2
+                , render_params.scale);
             // fc.cache(Math.floor(tl.x), Math.floor(tl.y), Math.ceil(wh.x - tl.x) + 2, Math.ceil(wh.y - tl.y) + 2);
         }
 
@@ -619,7 +673,7 @@ var EASEL_MAP = {
             over_handler: _over_handler,
 
             pre_render: function (stage, params) {
-                this.ensure_grid_container(stage, params);
+                this.reset(stage, params);
             },
 
             post_render: function (stage, params) {

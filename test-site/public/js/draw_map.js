@@ -2,11 +2,20 @@
     $(function () {
         var map = new EASEL_MAP.Map();
         // EASEL_MAP.grid_layer('back grid', map, {grid_params:{line_color: 'rgba(0, 204,0,0.5)'}});
-        var render_params = {scale: 0.125, left: 5, top: 0, heavy_freq: 6};
+        var render_params = {scale: 0.25, left: 5, top: 0, heavy_freq: 6};
 
         var _fill_color = _.template('rgb(<%= red %>,<%= green %>,255)');
 
+
+        color_DB = [];
+
         render_params.fill_color = function (cell) {
+            var color =  _.find(color_DB, function(d){
+                return d.row == cell.row && d.col == cell.col;
+            });
+
+            if (color) return color.color;
+
             var red = cell.row % 6 * 51;
             var green = cell.col % 6 * 51;
 
@@ -20,24 +29,31 @@
         });
 
         hex_layer.post_render = function (stage, render_params) {
-            //        hex_layer.cache(stage);
+            _.each(hex_layer.cells, function(cell){
+                var color = _.find(color_DB, function(d){
+                    return d.row == cell.row && d.col == cell.col;
+                });
+
+                if (color){
+                    cell.color = color.color;
+                }
+            })
         };
 
         hex_layer.on_click = function (cell) {
-            console.log('clicked on cell ', cell);
-            cell.fill_shape.graphics.clear();
+            console.log('clicked on cell ', cell.color);
             if (cell.color == 'black') {
-                cell.fill_shape = cell.fill(hex_layer.fill_container, 'white', cell.fill_shape);
                 cell.color = 'white';
             } else {
-                cell.fill_shape = cell.fill(hex_layer.fill_container, 'black', cell.fill_shape);
                 cell.color = 'black';
             }
-            cell.fill_shape.updateCache();
-            var stage = cell.fill_shape.getStage();
-            if (stage) {
-                stage.update();
-            }
+
+            color_DB = _.reject(color_DB, function(d){
+                return d.row == cell.row && d.col == cell.col;
+            });
+
+            color_DB.push({row: cell.row, col: cell.col, color: cell.color});
+            map.render(render_params, stage);
 
         };
 
@@ -87,7 +103,33 @@
             hex_layer.paint = false;
         };*/
 
-        map.render(render_params, $('canvas')[0]).enableMouseOver(true);
+        var stage = map.render(render_params, null, $('canvas')[0]);
+        stage.enableMouseOver(true);
+
+        $('#left').click(function(){
+            render_params.left += 500;
+            map.render(render_params, stage);
+        })
+
+        $('#right').click(function(){
+            render_params.left -= 500;
+            map.render(render_params, stage);
+        });
+
+        $('#zoom_in').click( function(){
+            render_params.scale *= 2;
+            map.render(render_params, stage);
+        });
+
+        $('#zoom_out').click( function(){
+            render_params.scale /= 2;
+            map.render(render_params, stage);
+        });
+
+        $('#hex_size').change(function(e){
+            console.log('hex size', e, $(e.target).val());
+
+        });
 
     })
 })(window);
