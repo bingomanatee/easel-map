@@ -227,7 +227,7 @@ var EASEL_MAP = {
             shape.x = this.center_x();
             shape.y = this.center_y();
 
-            shape.graphics.dc(0, 0, this.hex_size * ((1 + COS_30)/2));
+            shape.graphics.dc(0, 0, this.hex_size * ((1 + COS_30) / 2));
 
             container.addChild(shape);
 
@@ -258,7 +258,7 @@ var EASEL_MAP = {
             return shape;
         },
 
-        _make_hex: function (color, scale) {
+        _make_hex: function (color) {
             var shape = new createjs.Shape();
             shape.graphics.f(color);
             var points = this.calc_points();
@@ -269,10 +269,48 @@ var EASEL_MAP = {
 
             });
 
-            var extent = Math.ceil(this.hex_size ) + 1;
+            var extent = Math.ceil(this.hex_size) + 1;
 
-            shape.cache(-extent, -extent, 2 * extent, 2 * extent, scale);
+            shape.cache(-extent, -extent, 2 * extent, 2 * extent);
             CACHED_HEXES[color] = shape.cacheCanvas;
+        },
+
+
+        draw_scale: function (scale) {
+            var size = scale * this.hex_size;
+            console.log('size: ', size);
+            if (size > 50) {
+                return 3;
+            } else if (size > 20) {
+                return 2;
+            } else if (size > 10) {
+                return 1;
+            } else {
+                return 0;
+            }
+        },
+
+        render: function (render_params, fc) {
+            var color = this.fill_color(render_params);
+            var scale = render_params.scale;
+            switch (this.draw_scale(scale)) {
+                case 3:
+                    this.outline(goc, this.stroke_color(render_params), this.stroke_width(render_params), null, scale);
+                    this.fill_shape = this.fill(fc, color, null, scale);
+                    break;
+
+                case 2:
+                    this.fill_shape = this.fill(fc, color, null, scale);
+                    break;
+
+                case 1:
+                    this.fill_shape = this.circle_fill(fc, color, null, scale);
+                    break;
+
+                default:
+                    this.fill_shape = this.circle_fill(fc, color, null, scale);
+
+            }
         },
 
         fill: function (container, color, shape, scale, cache) {
@@ -285,7 +323,7 @@ var EASEL_MAP = {
             if (refresh) shape = new createjs.Bitmap(CACHED_HEXES[color]);
             shape.x = this.center_x() - (this.hex_size );
             shape.y = this.center_y() - (this.hex_size);
-         //   shape.scaleX = shape.scaleY = 1/scale;
+            //   shape.scaleX = shape.scaleY = 1/scale;
             container.addChild(shape);
 
             var extent = Math.ceil(this.hex_size) + 1;
@@ -528,20 +566,6 @@ var EASEL_MAP = {
 
         },
 
-        draw_scale: function (s) {
-            var size = s * this.grid_params.hex_size;
-            console.log('size: ', size);
-            if (size > 50) {
-                return 3;
-            } else if (size > 20) {
-                return 2;
-            } else if (size > 10) {
-                return 1;
-            } else {
-                return 0;
-            }
-        },
-
         render: function (stage, render_params) {
             console.log('rendering hexes');
             render_params = _.defaults(render_params, {scale: 1, left: 0, top: 0});
@@ -554,39 +578,20 @@ var EASEL_MAP = {
 
             var top_left_hex = range.top_left_hex;
             var bottom_right_hex = range.bottom_right_hex;
-
             var self = this;
-            var draw_scale = this.draw_scale(render_params.scale);
             _.each(_.range(top_left_hex.row, bottom_right_hex.row), function (row) {
                 _.each(_.range(top_left_hex.col, bottom_right_hex.col), function (col) {
                     var cell = new EASEL_MAP.class.Hex_Cell(row, col, self.grid_params.hex_size);
-                    var color = cell.fill_color(render_params);
-
-                    switch (draw_scale) {
-                        case 3:
-                            cell.outline(goc, cell.stroke_color(render_params), cell.stroke_width(render_params), null, render_params.scale);
-                            cell.fill_shape = cell.fill(fc, color, null, render_params.scale);
-                            break;
-
-                        case 2:
-                            cell.fill_shape = cell.fill(fc, color, null, render_params.scale);
-                            break;
-
-                        case 1:
-                            cell.fill_shape = cell.circle_fill(fc, color, null, render_params.scale);
-                            break;
-
-                        default:
-                            cell.fill_shape = cell.circle_fill(fc, color, null, render_params.scale);
-
-                    }
+                    cell.render(render_params, fc);
                     cell.fill_shape.on('click', self.click_handler(cell));
                     self.cells.push(cell);
                 })
             });
+            var draw_scale = this.cells[0].draw_scale(render_params.scale);
 
             if (this.cells.length > 100) {
              //   this.group_cells();
+                //@TODO: bring cell groups back.
             }
 
             var tl = goc.globalToLocal(0, 0);
