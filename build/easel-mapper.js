@@ -221,19 +221,23 @@ var EASEL_MAP = {
         },
 
         circle_fill: function (container, color, shape, scale, cache) {
-            var refresh = !!shape;
-            if (!shape) shape = new createjs.Shape();
+            var refresh = (!shape) || (!shape.graphics);
+            if (refresh) {
+                shape = new createjs.Shape();
+                shape.x = this.center_x();
+                shape.y = this.center_y();
+                shape.graphics.clear();
+                container.addChild(shape);
+            }
             shape.graphics.f(color);
-            shape.x = this.center_x();
-            shape.y = this.center_y();
 
             shape.graphics.dc(0, 0, this.hex_size * ((1 + COS_30) / 2));
 
-            container.addChild(shape);
+            if (refresh){
+                var extent = Math.ceil(this.hex_size) + 1;
+                if (cache) shape.cache(-extent, -extent, 2 * extent, 2 * extent, scale);
+            }
 
-            var extent = Math.ceil(this.hex_size) + 1;
-
-            if (cache) shape.cache(-extent, -extent, 2 * extent, 2 * extent, scale);
             return shape;
         },
 
@@ -253,8 +257,6 @@ var EASEL_MAP = {
             shape.graphics.es();
             // container.addChild(text);
             container.addChild(shape);
-
-            var rect = this.bound(shape);
             return shape;
         },
 
@@ -278,7 +280,6 @@ var EASEL_MAP = {
 
         draw_scale: function (scale) {
             var size = scale * this.hex_size;
-            console.log('size: ', size);
             if (size > 50) {
                 return 3;
             } else if (size > 20) {
@@ -290,7 +291,7 @@ var EASEL_MAP = {
             }
         },
 
-        render: function (render_params, fc) {
+        render: function (render_params, fc, events) {
             var color = this.fill_color(render_params);
             var scale = render_params.scale;
             switch (this.draw_scale(scale)) {
@@ -311,6 +312,43 @@ var EASEL_MAP = {
                     this.fill_shape = this.circle_fill(fc, color, null, scale);
 
             }
+
+            if (events) this.add_events(events);
+        },
+
+        equals: function(cell){
+            return cell.row == this.row && cell.col == this.col;
+        },
+
+        add_events: function(events){
+            var cell = this;
+            this.fill_shape.removeAllEventListeners();
+
+            if (events.on_click){
+                this.fill_shape.addEventListener('click', function(e){
+                    events.on_click(e, cell);
+                });
+            }
+            if (events.on_down){
+                this.fill_shape.addEventListener('mousedown', function(e){
+                    events.on_down(e, cell);
+                });
+            }
+            if (events.on_up){
+                this.fill_shape.addEventListener('mouseup', function(e){
+                    events.on_up(e, cell);
+                });
+            }
+            if (events.on_pressup){
+                this.fill_shape.addEventListener('pressup', function(e){
+                    events.on_pressup(e, cell);
+                });
+            }
+            if (events.on_over){
+                this.fill_shape.addEventListener('mouseover',function(e){
+                    events.on_over(e, cell);
+                });
+            }
         },
 
         fill: function (container, color, shape, scale, cache) {
@@ -319,14 +357,15 @@ var EASEL_MAP = {
                 this._make_hex(color);
             }
 
-            var refresh = !shape;
-            if (refresh) shape = new createjs.Bitmap(CACHED_HEXES[color]);
-            shape.x = this.center_x() - (this.hex_size );
-            shape.y = this.center_y() - (this.hex_size);
-            //   shape.scaleX = shape.scaleY = 1/scale;
-            container.addChild(shape);
-
-            var extent = Math.ceil(this.hex_size) + 1;
+            var refresh = (!shape) || (!shape.image);
+            if (refresh){
+                shape = new createjs.Bitmap(CACHED_HEXES[color]);
+                shape.x = this.center_x() - (this.hex_size );
+                shape.y = this.center_y() - (this.hex_size);
+                container.addChild(shape);
+            } else {
+                shape.image = CACHED_HEXES[color].image;
+            }
             return shape;
         },
 
@@ -410,6 +449,7 @@ var EASEL_MAP = {
          * within the grid container is grid_container_t that can be offset.
          * within grid_container_t are two containers,
          *   - the fill container and the outline container.
+         *   - a fill_paint_container for faster drawing of strokes.
          *   - the outline can be cached every time the position/scale has not changed.
          * @returns {Container}
          *
@@ -435,10 +475,16 @@ var EASEL_MAP = {
             this.grid_container_t.addChild(fills);
             this.fill_container = fills;
 
+            var paint = new createjs.Container();
+            this.grid_container_t.addChild(paint);
+            this.paint_container = paint;
+
             var outlines = new createjs.Container();
             outlines.name = 'outlines';
             this.grid_container_t.addChild(outlines);
             this.outlines_container = outlines;
+
+
         },
 
         group_cells: function () {
@@ -483,8 +529,8 @@ var EASEL_MAP = {
 
                 min_x -= cell.hex_size;
                 min_y -= cell.hex_size;
-                max_y += cell.hex_size;
-                max_x += cell.hex_size;
+                max_y += 2 *cell.hex_size;
+                max_x += 2 *cell.hex_size;
                 // console.log('caching group ', name, min_x, min_y, max_x - min_x, max_y - min_y);
                 group_container.cache(min_x, min_y, max_x - min_x, max_y - min_y);
                 this.fill_container.addChild(group_container);
@@ -564,6 +610,7 @@ var EASEL_MAP = {
             gct.x = render_params.left;
             gct.y = render_params.top;
 
+
         },
 
         render: function (stage, render_params) {
@@ -582,15 +629,14 @@ var EASEL_MAP = {
             _.each(_.range(top_left_hex.row, bottom_right_hex.row), function (row) {
                 _.each(_.range(top_left_hex.col, bottom_right_hex.col), function (col) {
                     var cell = new EASEL_MAP.class.Hex_Cell(row, col, self.grid_params.hex_size);
-                    cell.render(render_params, fc);
-                    cell.fill_shape.on('click', self.click_handler(cell));
+                    cell.render(render_params, fc, self);
                     self.cells.push(cell);
                 })
             });
             var draw_scale = this.cells[0].draw_scale(render_params.scale);
 
             if (this.cells.length > 100) {
-             //   this.group_cells();
+                this.group_cells();
                 //@TODO: bring cell groups back.
             }
 
@@ -613,44 +659,6 @@ var EASEL_MAP = {
 })(window);;
 (function (w) {
 
-    function _click_handler(cell) {
-        var self = this;
-        return function (event) {
-            if (self.on_click) {
-                self.on_click(cell);
-            }
-        }
-    }
-
-    function _down_handler(cell) {
-        var self = this;
-        return function (event) {
-            if (self.on_down) {
-                self.on_down(cell);
-            }
-
-        }
-    }
-
-    function _up_handler(cell) {
-        var self = this;
-        return function (event) {
-            if (self.on_up) {
-                self.on_up(cell);
-            }
-
-        }
-    }
-    function _over_handler(cell) {
-        var self = this;
-        return function (event) {
-            if (self.on_over) {
-                self.on_over(cell);
-            }
-
-        }
-    }
-
     var _default_grid_params = {
         hex_size: 50,
         labels: true,
@@ -672,10 +680,6 @@ var EASEL_MAP = {
         var grid_layer = new EASEL_MAP.Layer(name, map, params);
 
         _.extend(grid_layer, {
-            click_handler: _click_handler,
-            down_handler: _down_handler,
-            up_handler: _up_handler,
-            over_handler: _over_handler,
 
             pre_render: function (stage, params) {
                 this.reset(stage, params);

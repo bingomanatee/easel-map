@@ -41,7 +41,7 @@
             })
         };
 
-        hex_layer.on_click = function (cell) {
+        hex_layer.on_click_ = function (cell) { // disabled - being more granular
             console.log('clicked on cell ', cell, cell.color);
             function match(d) {
                 return d.row == cell.row && d.col == cell.col;
@@ -50,72 +50,101 @@
             var db_color = _.find(color_DB, match);
 
             if (db_color && db_color.color == 'black') {
-                cell.color = 'white';
+                cell.color = db_color.color = 'white';
             } else {
                 cell.color = 'black';
-            }
-
-            if (db_color){
-                db_color.color = cell.color;
-            } else {
-                color_DB.push({row: cell.row, col: cell.col, color: cell.color});
+                color_DB.push(_.pick(cell, 'row', 'col', 'color'))
             }
 
             cell.render(render_params, hex_layer.fill_container);
 
-            cell.fill_shape.removeAllEventListeners();
-            cell.fill_shape.addEventListener('click', function(e){
-                hex_layer.on_click(cell);
-            });
             stage.update();
 
         };
 
         hex_layer.strokeIndex = 0;
-        /*
-         hex_layer.on_down = function (cell) {
-         console.log('cell down: ', cell);
-         hex_layer.paint = true;
-         ++hex_layer.strokeIndex;
-         if (cell.color == 'black') {
-         hex_layer.color = 'white';
-         } else {
-         hex_layer.color = 'black;'
-         }
-         this.on_over(cell);
-         };
+        var last_cell = null;
+        hex_layer.on_down = function (e, cell) {
+            console.log('cell down: ', cell.row, cell.col);
+            hex_layer.paint = true;
+            ++hex_layer.strokeIndex;
 
-         hex_layer.on_over = function (cell) {
-         if (!cell.strokeIndex) {
-         cell.strokeIndex = -1;
-         }
-         if (hex_layer.paint && (cell.strokeIndex < hex_layer.strokeIndex)) {
-         console.log('cell over: ', cell, hex_layer.strokeIndex);
+            last_cell = null;
+            hex_layer.on_over(e, cell);
+        };
 
-         cell.fill_shape.graphics.clear();
 
-         cell.fill_shape = cell.fill(hex_layer.fill_container, hex_layer.color, cell.fill_shape);
-         cell.fill_shape.updateCache();
-         cell.color = hex_layer.color;
-         cell.strokeIndex == hex_layer.strokeIndex;
+        function get_mid_cells(a, b) {
+            if (a.equals(b)) {
+                return [a];
+            }
+            var row = Math.round((a.row + b.row) / 2);
+            var col = Math.round((a.col + b.col) / 2);
+            var id = {row: row, col: col};
+            if (a.equals(id) || b.equals(id)) {
+                return [a, b];
+            } else {
+                var mid = _.find(hex_layer.cells, function (cell) {
+                    return cell.equals(id);
+                });
 
-         var stage = cell.fill_shape.getStage();
-         if (stage) {
-         stage.update();
-         } else {
-         console.log('no_stage');
-         }
-         cell.strokeIndex = hex_layer.strokeIndex;
-         }else if (hex_layer.paint){
-         console.log('repeat stroke over ', cell, cell.strokeIndex)
-         }
-         };
+                if (mid) {
+                    return _.uniq([a, b].concat(get_mid_cells(a, mid)).concat(get_mid_cells(mid, b)));
+                } else {
+                    return [a, b];
+                }
+            }
+        }
 
-         hex_layer.on_up = function (cell) {
-         console.log('cell up: ', cell);
+        hex_layer.on_over = function (e, cell) {
+            if (hex_layer.paint && ((!cell.strokeIndex) || (cell.strokeIndex < hex_layer.strokeIndex))) {
 
-         hex_layer.paint = false;
-         };*/
+                console.log('cell over: ', cell.row, cell.col, hex_layer.strokeIndex);
+
+                cell.strokeIndex = hex_layer.strokeIndex;
+                function match(d) {
+                    return cell.equals(d);
+                }
+
+                function color_cell(cell) {
+                    console.log('coloring cell ', cell.row, cell.col)
+                    var db_color = _.find(color_DB, match);
+
+                    if (db_color && (!(db_color.color == 'black'))) {
+                        cell.color = db_color.color = 'black';
+                    } else {
+                        cell.color = 'black';
+                        color_DB.push(_.pick(cell, 'row', 'col', 'color'))
+                    }
+                    cell.render(render_params, hex_layer.paint_container);
+                }
+
+
+                if (last_cell && !last_cell.equals(cell)) {
+                    var mid_cells = get_mid_cells(cell, last_cell);
+                    _.each(mid_cells, color_cell);
+                } else {
+                    color_cell(cell);
+                }
+
+                var stage = cell.fill_shape.getStage();
+                if (stage) {
+                    stage.update();
+                } else {
+                    console.log('no_stage');
+                }
+
+                last_cell = cell;
+            }
+        };
+
+        hex_layer.on_pressup = function (e, cell) {
+            console.log('cell up: ', cell.row, cell.col);
+
+            hex_layer.paint_container.removeAllChildren();
+            hex_layer.paint = false;
+            map.render(render_params, stage);
+        };
 
         var stage = map.render(render_params, null, $('canvas')[0]);
         stage.enableMouseOver(true);
