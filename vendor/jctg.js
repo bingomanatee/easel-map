@@ -141,7 +141,7 @@
         }
         return value;
     }
-    
+
     window.generateTerrainMap = function (mapDimension, unitSize, roughness) {
 
         "use strict";

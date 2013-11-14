@@ -55,8 +55,13 @@ var EASEL_MAP = {
             this.layers = {};
         },
 
-        get_layers: function(){
-          return _.sortBy(_.values(this.layers), 'order');
+        get_layers: function(reverse){
+          var out = _.sortBy(_.values(this.layers), 'order');
+            if (reverse){
+                return out.reverse();
+            } else {
+                return out;
+            }
         },
 
         add_layer: function(layer){
@@ -65,6 +70,18 @@ var EASEL_MAP = {
             }
             this.layers[layer.name] = layer;
         },
+
+        event: function(name, e){
+            var bubbles = this.get_layers(true);
+
+            var handled = false;
+
+            _.each(bubbles, function(layer){
+               if(!handled){
+                   handled = layer.event(name, e);
+               }
+            })
+        }
 
     };
 
@@ -100,6 +117,21 @@ var EASEL_MAP = {
         }, this);
 
         stage.update();
+
+        var self = this;
+
+        $(canvas).on('mousemove', function(e){
+            console.log('mousemove');
+            self.event('mousemove', e);
+        });
+        $(canvas).on('mousedown', function(e){
+            console.log('mousedown');
+            self.event('mousedown', e);
+        });
+        $(canvas).on('mouseup', function(e){
+            console.log('mouseup');
+            self.event('mouseup', e);
+        });
         return stage;
     }
 
@@ -115,6 +147,7 @@ var EASEL_MAP = {
         _.extend(this, params);
         this.order = map.layers.length;
         this.name = name;
+        this.events = {};
     };
 
     EASEL_MAP.Layer.prototype = {
@@ -138,6 +171,16 @@ var EASEL_MAP = {
                 this.container = stage_container;
             }
             return stage_container;
+        },
+
+        event: function(name, e){
+            if (this.events[name]){
+                console.log('handling event ', name);
+                return this.events[name](e);
+            } else {
+                console.log('no handler for event ', name);
+                return false;
+            }
         }
 
     };
@@ -175,9 +218,22 @@ var EASEL_MAP = {
         this.hex_size = hex_size;
         this.row = i;
         this.col = j;
+        this.events = {};
     };
 
+
     EASEL_MAP.class.Hex_Cell.prototype = {
+
+        event: function (name, e) {
+            if (this.events[name]) {
+                console.log('handling cell event ', name);
+                return this.events[name](e);
+            } else {
+                console.log('NOT handling cell event', name);
+                return false;
+            }
+        },
+
         calc_points: function (scale) {
             if (!scale) scale = 1;
             if (this.points) {
@@ -233,7 +289,7 @@ var EASEL_MAP = {
 
             shape.graphics.dc(0, 0, this.hex_size * ((1 + COS_30) / 2));
 
-            if (refresh){
+            if (refresh) {
                 var extent = Math.ceil(this.hex_size) + 1;
                 if (cache) shape.cache(-extent, -extent, 2 * extent, 2 * extent, scale);
             }
@@ -312,40 +368,38 @@ var EASEL_MAP = {
                     this.fill_shape = this.circle_fill(fc, color, null, scale);
 
             }
-
-            if (events) this.add_events(events);
         },
 
-        equals: function(cell){
+        equals: function (cell) {
             return cell.row == this.row && cell.col == this.col;
         },
 
-        add_events: function(events){
+        add_events: function (events) {
             var cell = this;
             this.fill_shape.removeAllEventListeners();
 
-            if (events.on_click){
-                this.fill_shape.addEventListener('click', function(e){
+            if (events.on_click) {
+                this.fill_shape.addEventListener('click', function (e) {
                     events.on_click(e, cell);
                 });
             }
-            if (events.on_down){
-                this.fill_shape.addEventListener('mousedown', function(e){
+            if (events.on_down) {
+                this.fill_shape.addEventListener('mousedown', function (e) {
                     events.on_down(e, cell);
                 });
             }
-            if (events.on_up){
-                this.fill_shape.addEventListener('mouseup', function(e){
+            if (events.on_up) {
+                this.fill_shape.addEventListener('mouseup', function (e) {
                     events.on_up(e, cell);
                 });
             }
-            if (events.on_pressup){
-                this.fill_shape.addEventListener('pressup', function(e){
+            if (events.on_pressup) {
+                this.fill_shape.addEventListener('pressup', function (e) {
                     events.on_pressup(e, cell);
                 });
             }
-            if (events.on_over){
-                this.fill_shape.addEventListener('mouseover',function(e){
+            if (events.on_over) {
+                this.fill_shape.addEventListener('mouseover', function (e) {
                     events.on_over(e, cell);
                 });
             }
@@ -358,7 +412,7 @@ var EASEL_MAP = {
             }
 
             var refresh = (!shape) || (!shape.image);
-            if (refresh){
+            if (refresh) {
                 shape = new createjs.Bitmap(CACHED_HEXES[color]);
                 shape.x = this.center_x() - (this.hex_size );
                 shape.y = this.center_y() - (this.hex_size);
@@ -488,7 +542,7 @@ var EASEL_MAP = {
         },
 
         group_cells: function () {
-
+            var self = this;
             this.fill_container.removeAllChildren();
             var groups = this.cells.reduce(function (out, cell) {
 
@@ -506,37 +560,121 @@ var EASEL_MAP = {
             this.fill_group_containers = {};
             _.each(groups, function (cells, name) {
                 var group_container = new createjs.Container();
+                group_container.cells = cells;
+                group_container.name = name;
 
-                var cell = cells[0];
+                group_container.$event = function(name, e){
+                    var cell = self.nearest_cell(group_container,e);
+                    return cell.event(name, e);
+                };
 
-                var min_x = cell.fill_shape.x;
-                var min_y = cell.fill_shape.y;
-                var max_x = min_x;
-                var max_y = min_y;
+                this.fill_container.addChild(group_container);
+                this.fill_group_containers[name] = group_container;
 
                 cells.forEach(function (cell) {
                     group_container.addChild(cell.fill_shape);
                     cell.group_container = group_container;
-                    group_container.name = name;
-
-                    min_x = Math.min(min_x, cell.fill_shape.x);
-                    max_x = Math.max(max_x, cell.fill_shape.x);
-
-                    min_y = Math.min(min_y, cell.fill_shape.y);
-                    max_y = Math.max(max_y, cell.fill_shape.y);
-                //    cell.updateCache();
                 });
 
-                min_x -= cell.hex_size;
-                min_y -= cell.hex_size;
-                max_y += 2 *cell.hex_size;
-                max_x += 2 *cell.hex_size;
-                // console.log('caching group ', name, min_x, min_y, max_x - min_x, max_y - min_y);
-                group_container.cache(min_x, min_y, max_x - min_x, max_y - min_y);
-                this.fill_container.addChild(group_container);
-                this.fill_group_containers[name] = group_container;
+                this.set_gc_range(group_container, cells);
+
+                group_container.cache(
+                    group_container.$range.min_x,
+                    group_container.$range.min_y,
+                    group_container.$range.max_x - group_container.$range.min_x,
+                    group_container.$range.max_y - group_container.$range.min_y
+                );
                 group_container.name = name;
+
             }, this);
+            this.add_group_events();
+        },
+
+        set_gc_range: function (group_container, cells) {
+
+            var cell = cells[0];
+
+            var min_x = cell.fill_shape.x;
+            var min_y = cell.fill_shape.y;
+            var max_x = min_x;
+            var max_y = min_y;
+
+            _.each(cells, function (cell) {
+                group_container.addChild(cell.fill_shape);
+                cell.group_container = group_container;
+                min_x = Math.min(min_x, cell.fill_shape.x);
+                max_x = Math.max(max_x, cell.fill_shape.x);
+
+                min_y = Math.min(min_y, cell.fill_shape.y);
+                max_y = Math.max(max_y, cell.fill_shape.y);
+
+            });
+
+            min_x -= cell.hex_size;
+            min_y -= cell.hex_size;
+            max_y += 2 * cell.hex_size;
+            max_x += 2 * cell.hex_size;
+            group_container.$range = {
+                min_x: min_x,
+                max_x: max_x,
+                min_y: min_y,
+                max_y: max_y
+            };
+        },
+
+        nearest_cell: function (container, e) {
+            console.log('target: ', e);
+            var x, y;
+            if (e.hasOwnProperty('stageX')){
+                 x = e.stageX;
+                 y = e.stageY;
+            } else {
+                 x = e.offsetX;
+                 y = e.offsetY;
+            }
+            var target = container.globalToLocal(x, y);
+
+            function _d(cell) {
+                return   Math.abs(cell.center_x() - target.x) +
+                    Math.abs(cell.center_y() - target.y);
+            }
+
+            return _.reduce(container.cells, function (out, cell) {
+                if (!out) return cell;
+                var distance = _d(cell);
+                var out_distance = _d(out);
+                return distance < out_distance ? cell : out;
+            });
+        },
+
+        add_group_events: function () {
+            var self = this;
+
+            function _group_contains(container, e) {
+                var target = container.globalToLocal(e.offsetX, e.offsetY);
+
+                return container.$range.min_x <= target.x && container.$range.max_x >= target.x
+                    && container.$range.min_y <= target.y && container.$range.max_y >= target.y;
+            }
+
+            function _group_event(name) {
+
+                return function (e) {
+                    _.each(self.fill_group_containers, function (container) {
+                        if (_group_contains(container, e)) {
+                            return container.$event(name, e);
+                        } else {
+                            return false;
+                        }
+                    });
+                };
+            }
+
+            this.events.mousedown = _group_event('mousedown');
+            this.events.mouseup = _group_event('mouseup');
+            this.events.mousemove = _group_event('mousemove');
+
+
         },
 
         cell_range: function (stage, render_params) {
@@ -635,10 +773,7 @@ var EASEL_MAP = {
             });
             var draw_scale = this.cells[0].draw_scale(render_params.scale);
 
-            if (this.cells.length > 100) {
-                this.group_cells();
-                //@TODO: bring cell groups back.
-            }
+            this.group_cells();
 
             var tl = goc.globalToLocal(0, 0);
             var wh = goc.globalToLocal(stage.canvas.width, stage.canvas.height);

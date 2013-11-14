@@ -32,11 +32,22 @@
             console.log('cell count: ', hex_layer.cells.length);
             _.each(hex_layer.cells, function (cell) {
                 var color = _.find(color_DB, function (d) {
-                    return d.row == cell.row && d.col == cell.col;
+                  return cell.equals(d);
                 });
 
                 if (color) {
                     cell.color = color.color;
+                }
+
+                cell.events.mousedown = function(e){
+                    hex_layer.on_down(e, cell);
+                }
+                cell.events.mousemove = function(e){
+                    hex_layer.on_over(e, cell);
+                }
+
+                cell.events.mouseup = function(e){
+                    hex_layer.on_pressup(e, cell)
                 }
             })
         };
@@ -146,7 +157,9 @@
             map.render(render_params, stage);
         };
 
-        var stage = map.render(render_params, null, $('canvas')[0]);
+        var canvas =  $('canvas')[0];
+        var stage = map.render(render_params, null, canvas);
+
         stage.enableMouseOver(true);
 
         $('#left').click(function () {
