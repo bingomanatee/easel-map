@@ -6,20 +6,46 @@
 
         var _fill_color = _.template('rgb(<%= red %>,<%= green %>,255)');
 
+        var perlin = new EASEL_MAP.util.Perlin();
 
         color_DB = [];
 
+        var greys = [];
+
+        perlin.generate([-100, -100], [200, 200], function (coords, value) {
+            console.log(coords, value);
+            greys.push({x: coords[0], y: coords[1], value: value});
+        });
+
+        greys = _.map( _.groupBy(greys, 'x'), function (values) {
+            return {
+                x: values[0].x,
+                values: _.map(values, function (value) {
+                    return _.pick(value, 'x', 'value');
+                })
+            };
+        });
+
         render_params.fill_color = function (cell) {
-            var color = _.find(color_DB, function (d) {
-                return d.row == cell.row && d.col == cell.col;
-            });
 
-            if (color) return color.color;
+            var x = cell.center_x();
+            var y = cell.center_y();
 
-            var red = cell.row % 6 * 51;
-            var green = cell.col % 6 * 51;
+            var x1 = Math.floor(x);
+            var y1 = Math.floor(y);
 
-            return _fill_color({red: red, green: green})
+
+            /*
+             var color = _.find(color_DB, function (d) {
+             return d.row == cell.row && d.col == cell.col;
+             });
+
+             if (color) return color.color;
+
+             var red = cell.row % 6 * 51;
+             var green = cell.col % 6 * 51;
+
+             return _fill_color({red: red, green: green})*/
         };
 
         var hex_layer = EASEL_MAP.hex_layer('back_hexes', map, {
@@ -32,21 +58,21 @@
             console.log('cell count: ', hex_layer.cells.length);
             _.each(hex_layer.cells, function (cell) {
                 var color = _.find(color_DB, function (d) {
-                  return cell.equals(d);
+                    return cell.equals(d);
                 });
 
                 if (color) {
                     cell.color = color.color;
                 }
 
-                cell.events.mousedown = function(e){
+                cell.events.mousedown = function (e) {
                     hex_layer.on_down(e, cell);
                 }
-                cell.events.mousemove = function(e){
+                cell.events.mousemove = function (e) {
                     hex_layer.on_over(e, cell);
                 }
 
-                cell.events.mouseup = function(e){
+                cell.events.mouseup = function (e) {
                     hex_layer.on_pressup(e, cell)
                 }
             })
@@ -83,7 +109,6 @@
             last_cell = null;
             hex_layer.on_over(e, cell);
         };
-
 
         function get_mid_cells(a, b) {
             if (a.equals(b)) {
@@ -157,7 +182,7 @@
             map.render(render_params, stage);
         };
 
-        var canvas =  $('canvas')[0];
+        var canvas = $('canvas')[0];
         var stage = map.render(render_params, null, canvas);
 
         stage.enableMouseOver(true);

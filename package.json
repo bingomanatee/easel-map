@@ -23,5 +23,8 @@
     "grunt-contrib-concat": "~0.3.0",
     "grunt-contrib-uglify": "~0.2.4",
     "tap": "~0.4.4"
+  },
+  "dependencies": {
+    "perlin": "~1.0.0"
   }
 }
