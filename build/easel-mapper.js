@@ -349,10 +349,10 @@ var EASEL_MAP = {
 
         event: function (name, e) {
             if (this.events[name]) {
-                console.log('handling cell event ', name);
+          //      console.log('handling cell event ', name);
                 return this.events[name](e);
             } else {
-                console.log('NOT handling cell event', name);
+            //    console.log('NOT handling cell event', name);
                 return false;
             }
         },
@@ -679,7 +679,7 @@ var EASEL_MAP = {
                 return out;
 
             }, {});
-            console.log('cells: ', this.cells.length);
+        //    console.log('cells: ', this.cells.length);
 
             this.fill_group_containers = {};
             _.each(groups, function (cells, name) {
@@ -747,7 +747,7 @@ var EASEL_MAP = {
         },
 
         nearest_cell: function (container, e) {
-            console.log('target: ', e);
+            // console.log('target: ', e);
             var x, y;
             if (e.hasOwnProperty('stageX')){
                  x = e.stageX;
@@ -876,7 +876,7 @@ var EASEL_MAP = {
         },
 
         render: function (stage, render_params) {
-            console.log('rendering hexes');
+           // console.log('rendering hexes');
             render_params = _.defaults(render_params, {scale: 1, left: 0, top: 0});
 
             this.reset();

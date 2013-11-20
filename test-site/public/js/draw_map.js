@@ -4,7 +4,8 @@
         // EASEL_MAP.grid_layer('back grid', map, {grid_params:{line_color: 'rgba(0, 204,0,0.5)'}});
         var render_params = {scale: 0.25, left: 5, top: 0, heavy_freq: 6};
 
-        var _fill_color = _.template('rgb(<%= red %>,<%= green %>,255)');
+        var _fill_color = _.template('rgb(<%= Math.min(255, Math.max(0, red )) %>,<%= Math.min(255, Math.max(0, green )) %>, <%= Math.min(255, Math.max(0, blue )) %>)');
+        var SEA_LEVEL = 100;
 
         color_DB = [];
 
@@ -35,16 +36,28 @@
             var x = cell.center_x();
             var y = cell.center_y();
 
-            var x1 = Math.floor(x/70) + 360;
-            var y1 = Math.floor(y/70) + 180;
+            var x1 = Math.floor(x/40) + 360;
+            var y1 = Math.floor(y/40) + 180;
 
-        //    console.log('x1: ', x1, 'y1: ', y1);
+          //  console.log('x1: ', x1, 'y1: ', y1);
             var context = perlin.canvas.getContext('2d');
             var data = context.getImageData(x1, y1, 1, 1).data;
-            var r = data[0];
-            var g = data[1];
-            var b = data[2];
-            return 'rgb(' + ([r, g, b].join(',')) + ')';
+            var r, g, b;
+            r = g = b = Math.round((data[0] - 120) * 2);
+            if (b < SEA_LEVEL){
+                r /= 2;
+                g /= 2;
+            } else {
+                var scale = 512 - SEA_LEVEL;
+               var green_margin = -20;
+                var green_scale = 1.5;
+
+                b = Math.floor(((b - SEA_LEVEL) * green_scale) + (SEA_LEVEL  + green_margin));
+               // r = g;
+            }
+
+          //  console.log('color: ', r, g, b);
+            return _fill_color({red: r, green: g, blue: b});
             /*
 
              var red = cell.row % 6 * 51;
@@ -192,14 +205,38 @@
 
         stage.enableMouseOver(true);
 
+        var D = 100;
+
+       function stat(){
+           $('#left_value').text(render_params.left);
+           $('#top_value').text(render_params.top);
+           $('#scale_value').text(render_params.scale);
+       }
+
+        stat();
+
         $('#left').click(function () {
-            render_params.left += 500;
+            render_params.left += D / render_params.scale;
             map.render(render_params, stage);
+            stat();
         })
 
         $('#right').click(function () {
-            render_params.left -= 500;
+            render_params.left -= D / render_params.scale;
             map.render(render_params, stage);
+            stat();
+        });
+
+        $('#up').click(function () {
+            render_params.top += D / render_params.scale;
+            map.render(render_params, stage);
+            stat();
+        })
+
+        $('#down').click(function () {
+            render_params.top -= D / render_params.scale;
+            map.render(render_params, stage);
+            stat();
         });
 
         $('#zoom_in').click(function () {
