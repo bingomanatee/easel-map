@@ -198,13 +198,19 @@
         });
 
         $('#zoom_in').click(function () {
+            
+            if (render_params.scale < 2){
+                
             render_params.scale *= 2;
             map.render(render_params, stage);
+            }
         });
 
         $('#zoom_out').click(function () {
+            if (rende_params.scale > 0.125){
             render_params.scale /= 2;
             map.render(render_params, stage);
+            }
         });
 
         $('#hex_size').change(function (e) {
