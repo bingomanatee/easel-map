@@ -154,7 +154,7 @@ var EASEL_MAP = {
         }, this);
     };
 
-    var INCREMENT = 4;
+    var INCREMENT = 7;
 
     var MIN_RADIUS = 1;
     var MAX_RADIUS = 5;
@@ -173,17 +173,18 @@ var EASEL_MAP = {
 
     function _circles_on_shape(scale, width, height) {
         var shape = new createjs.Shape();
-        _.each(_.shuffle(_.range(-MAX_RADIUS, width + MAX_RADIUS, INCREMENT)), function (x) {
-            _.each(_.shuffle(_.range(-MAX_RADIUS, height + MAX_RADIUS, INCREMENT)), function (y) {
-                x += Math.random() * INCREMENT * scale;
-                y += Math.random() * INCREMENT * scale;
+        _.each(_.shuffle(_.range(-MAX_RADIUS * 4, width + MAX_RADIUS * 4, INCREMENT)), function (x) {
+            _.each(_.shuffle(_.range(-MAX_RADIUS * 2, height + MAX_RADIUS, INCREMENT)), function (y) {
+                x += Math.random() * INCREMENT - INCREMENT/2;
+                y += Math.random() * INCREMENT - INCREMENT/2;
                 shape.graphics.f(_random_grey((Math.random() + Math.random())))
                     .dc(x, y, _random_radius()).ef();
             })
         });
         var s = Math.max(2, scale * 2);
         shape.filters = [
-            new createjs.BlurFilter(s, s, 2)
+            new createjs.BlurFilter(s, s, 2),
+            new createjs.ColorFilter(2, 2, 2, 1,-120,-120, -120)
         ];
 
         shape.cache(0, 0, width, height);
@@ -201,14 +202,24 @@ var EASEL_MAP = {
             this.canvas.width = width;
             this.canvas.height = height;
 
+            var r = new createjs.Shape();
+            r.graphics.f('rgb(128,128,128)').dr(0,0,width, height);
+
             var stage = new createjs.Stage(this.canvas);
-            _.each(_.range(0, this.scale_count).reverse(), function (scale) {
+            stage.addChild(r);
+
+            _.each(_.range(0, this.scale_count), function (scale, i) {
+
+                var a_canvas = document.createElement('canvas');
+                var a_stage = new createjs.Stage(a_canvas);
+                a_stage.addChild(_circles_on_shape(2, width, height));
+                a_stage.update();
 
                 var shape = new createjs.Shape();
-                shape.alpha = (1 / (this.scale_count - scale));
+                shape.alpha = i ? 0.5 : 1;
                 stage.addChild(shape);
 
-                var matrix = new createjs.Matrix2D((scale + 1) / 2, 0, 0, (scale + 1) / 2, this.offsets[scale][0], this.offsets[scale][1]);
+                var matrix = new createjs.Matrix2D((scale + 1) / 4, 0, 0, (scale + 1) / 4, this.offsets[scale][0], this.offsets[scale][1]);
 
                 shape.graphics.bf(this.bitmaps[scale], 'repeat', matrix).dr(0, 0, width, height);
             }, this);
@@ -227,8 +238,8 @@ var EASEL_MAP = {
 
                 var stage = new createjs.Stage(canvas);
                 var r = new createjs.Shape();
-                r.graphics.f('rgb(128,128,128)').r(0, 0, width, height).ef();
-                stage.addChild(r);
+             //   r.graphics.f('rgb(128,128,128)').r(0, 0, width, height).ef();
+              //  stage.addChild(r);
 
                 _.each([1, 2, 3].reverse(), function (scale) {
                     var shape = _circles_on_shape(scale, width, height);
@@ -462,6 +473,7 @@ var EASEL_MAP = {
         render: function (render_params, fc, events) {
             var color = this.fill_color(render_params);
             var scale = render_params.scale;
+            var goc = this.outlines_container;
             switch (this.draw_scale(scale)) {
                 case 3:
                     this.outline(goc, this.stroke_color(render_params), this.stroke_width(render_params), null, scale);

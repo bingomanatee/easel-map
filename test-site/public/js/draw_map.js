@@ -6,18 +6,16 @@
 
         var _fill_color = _.template('rgb(<%= red %>,<%= green %>,255)');
 
-        var perlin = new EASEL_MAP.util.Perlin();
-
         color_DB = [];
 
         var greys = [];
 
-        perlin.generate([-100, -100], [200, 200], function (coords, value) {
-            console.log(coords, value);
-            greys.push({x: coords[0], y: coords[1], value: value});
-        });
 
-        greys = _.map( _.groupBy(greys, 'x'), function (values) {
+        var perlin = new EASEL_MAP.util.Perlin_Canvas(7, 400, 300);
+
+        perlin.render(720, 360);
+
+        greys = _.map(_.groupBy(greys, 'x'), function (values) {
             return {
                 x: values[0].x,
                 values: _.map(values, function (value) {
@@ -28,19 +26,26 @@
 
         render_params.fill_color = function (cell) {
 
+            var color = _.find(color_DB, function (d) {
+                return d.row == cell.row && d.col == cell.col;
+            });
+
+            if (color) return color.color;
+
             var x = cell.center_x();
             var y = cell.center_y();
 
-            var x1 = Math.floor(x);
-            var y1 = Math.floor(y);
+            var x1 = Math.floor(x/70) + 360;
+            var y1 = Math.floor(y/70) + 180;
 
-
+        //    console.log('x1: ', x1, 'y1: ', y1);
+            var context = perlin.canvas.getContext('2d');
+            var data = context.getImageData(x1, y1, 1, 1).data;
+            var r = data[0];
+            var g = data[1];
+            var b = data[2];
+            return 'rgb(' + ([r, g, b].join(',')) + ')';
             /*
-             var color = _.find(color_DB, function (d) {
-             return d.row == cell.row && d.col == cell.col;
-             });
-
-             if (color) return color.color;
 
              var red = cell.row % 6 * 51;
              var green = cell.col % 6 * 51;
@@ -50,7 +55,7 @@
 
         var hex_layer = EASEL_MAP.hex_layer('back_hexes', map, {
             grid_params: {
-                hex_size: 100, labels: true, label_increment: 2
+                hex_size: 25, labels: true, label_increment: 2
             }
         });
 
@@ -198,18 +203,18 @@
         });
 
         $('#zoom_in').click(function () {
-            
-            if (render_params.scale < 2){
-                
-            render_params.scale *= 2;
-            map.render(render_params, stage);
+
+            if (render_params.scale < 2) {
+
+                render_params.scale *= 2;
+                map.render(render_params, stage);
             }
         });
 
         $('#zoom_out').click(function () {
-            if (rende_params.scale > 0.125){
-            render_params.scale /= 2;
-            map.render(render_params, stage);
+            if (render_params.scale > 0.125) {
+                render_params.scale /= 2;
+                map.render(render_params, stage);
             }
         });
 

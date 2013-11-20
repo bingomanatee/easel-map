@@ -1,8 +1,8 @@
 (function(){
 
-    var perlin = new EASEL_MAP.util.Perlin_Canvas(2);
+    var perlin = new EASEL_MAP.util.Perlin_Canvas(7, 400, 300);
 
-    perlin.render(400, 200);
+    perlin.render(720, 360);
 
     $('#perlin').append(perlin.canvas);
     $('#perlin1').append(perlin.bitmaps[0]);
