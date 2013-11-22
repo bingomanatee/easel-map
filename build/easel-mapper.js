@@ -421,6 +421,10 @@ var EASEL_MAP = {
             if (params.hasOwnProperty('top')) {
                 this.offset_layer().y = params.top;
             }
+            if (params.hasOwnProperty('scale')){
+                var gc = this.scale_layer();
+                gc.scaleX = gc.scaleY = this.scale(params.scale);
+            }
         },
         render: function (stage, params) {
             this.set_stage(stage);
@@ -441,11 +445,11 @@ var EASEL_MAP = {
         },
 
         tile_width: function () {
-            return 100;
+            return 200;
         },
 
         tile_height: function () {
-            return 100;
+            return 200;
         },
 
         scale_layer: function () {
@@ -518,11 +522,21 @@ var EASEL_MAP = {
         tile_range: function () {
             var tl = this.tile(0, 0);
             var ltl = this.local_tl();
+
+            ltl.x = Math.max(this.map.left, ltl.x);
+            ltl.y = Math.max(this.map.top, ltl.y);
+
             tl.move_around(ltl.x, ltl.y);
 
             var br = this.tile(tl.i, tl.j);
             var lbr = this.local_br();
+
+            lbr.x = Math.min(this.map.right,lbr.x);
+            lbr.y = Math.min(this.map.bottom, lbr.y);
+
             br.move_around(lbr.x, lbr.y);
+
+
 
             return {tl: tl, br: br};
         },
