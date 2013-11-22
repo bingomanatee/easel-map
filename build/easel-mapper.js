@@ -40,8 +40,16 @@ var EASEL_MAP = {
 })(window);;
 (function (w) {
 
+    var _defaults = {
+        top: -3250,
+        bottom: 3250,
+        left: -6500,
+        right: 6500
+    };
+
     EASEL_MAP.Map = function (params) {
-       this.init();
+        this.init();
+        _.defaults(this, _defaults);
         _.extend(this, params);
 
     };
@@ -55,31 +63,40 @@ var EASEL_MAP = {
             this.layers = {};
         },
 
-        get_layers: function(reverse){
-          var out = _.sortBy(_.values(this.layers), 'order');
-            if (reverse){
+        get_layers: function (reverse) {
+            var out = _.sortBy(_.values(this.layers), 'order');
+            if (reverse) {
                 return out.reverse();
             } else {
                 return out;
             }
         },
 
-        add_layer: function(layer){
-            if (this.layers[layer.name]){
-                throw new Error('already have a layer ' + name);
+        add_layer: function (layer, params) {
+            if (_.isString(layer)) {
+                if (this.layers[layer]) {
+                    throw new Error('already have a layer ' + name);
+                }
+                layer = this.layers[layer] = new EASEL_MAP.Layer(layer, this, params || {});
+            } else if (this.layers[layer.name]) {
+                throw new Error('already have a layer ', layer.name);
+            } else {
+                this.layers[layer.name] = layer;
             }
-            this.layers[layer.name] = layer;
+
+            return layer;
+
         },
 
-        event: function(name, e){
+        event: function (name, e) {
             var bubbles = this.get_layers(true);
 
             var handled = false;
 
-            _.each(bubbles, function(layer){
-               if(!handled){
-                   handled = layer.event(name, e);
-               }
+            _.each(bubbles, function (layer) {
+                if (!handled) {
+                    handled = layer.event(name, e);
+                }
             })
         }
 
@@ -97,7 +114,6 @@ var EASEL_MAP = {
         }
 
         _.each(this.get_layers(), function (layer) {
-            layer.ensure_container(stage, true);
             if (layer.pre_render){
                 layer.pre_render(stage, params);
             };
@@ -261,6 +277,127 @@ var EASEL_MAP = {
 })(window);;
 (function (window) {
 
+    EASEL_MAP.Layer_Tile = function (layer, i, j) {
+        this.layer = layer;
+        this.i = i;
+        this.j = j;
+
+        this.layer.tiles.push(this);
+        this.loaded = false;
+    }
+
+    EASEL_MAP.Layer_Tile.prototype = {
+
+        load: function () {
+            this.container().removeAllChildren();
+            this.layer.add_tile_shapes(this);
+            this.cache();
+            this.loaded = true;
+        },
+
+        move_around: function (x, y) {
+            var xd, yd;
+            while (xd = this._x_d(x)) {
+                this.i += xd;
+            }
+            while (yd = this._y_d(y)) {
+                this.j += yd;
+            }
+        },
+
+        _x_d: function (x) {
+            var left = this.left();
+            var right = this.right();
+
+            if (x < left) {
+                return -1;
+            } else if (x > right) {
+                return 1;
+            } else {
+                return 0;
+            }
+        },
+
+        _y_d: function (y) {
+            var top = this.top();
+            var bottom = this.bottom();
+            if (y < top) {
+                return -1;
+            } else if (y > bottom) {
+                return 1;
+            } else {
+                return 0;
+            }
+        },
+
+        cache: function (scale) {
+            this.container().cache(
+                Math.floor(this.left() - 1),
+                Math.floor(this.top() - 1),
+                Math.ceil(this.width() + 2),
+                Math.ceil(this.height() + 2),
+                scale
+            );
+        },
+
+        left: function () {
+            return this.i * this.width();
+        },
+
+        top: function () {
+            return this.j * this.height();
+        },
+
+        right: function () {
+            return this.left() + this.width();
+        },
+
+        bottom: function () {
+            return this.top() + this.height();
+        },
+
+        width: function () {
+            return this.layer.tile_width();
+        },
+
+        height: function () {
+            return this.layer.tile_height();
+        },
+
+        container: function () {
+            if (!this._container) {
+                this._container = new createjs.Container();
+                this.layer.offset_layer().addChild(this._container);
+            }
+            return this._container;
+        },
+
+        contains: function (range) {
+            if (this.left() >= range.right) {
+                console.log('left', this.left(), '>= range.right', range.right);
+                return false;
+            }
+            if (this.right() <= range.left) {
+                console.log('right', this.right(), '<= range.left', range.left);
+                return false;
+            }
+            if (this.top() >= range.bottom) {
+                console.log('top', this.top(), '>= range.bottom', range.bottom);
+                return false;
+            }
+            if( this.bottom() <= range.top){
+                console.log('bottom', this.bottom(), '<= range.top', range.top);
+                return false;
+            }
+            return true;
+        }
+
+    }
+
+
+})(window);;
+(function (window) {
+
     EASEL_MAP.Layer = function (name, map, params) {
         if (!_.isString(name)) {
             throw new Error('name must be string');
@@ -271,39 +408,161 @@ var EASEL_MAP = {
         this.order = map.layers.length;
         this.name = name;
         this.events = {};
+        this.tiles = [];
     };
 
     EASEL_MAP.Layer.prototype = {
-        render: function () {
-            throw new Error('must override ');
+
+        pre_render: function (stage, params) {
+            this.set_stage(stage);
+            if (params.hasOwnProperty('left')) {
+                this.offset_layer().x = params.left;
+            }
+            if (params.hasOwnProperty('top')) {
+                this.offset_layer().y = params.top;
+            }
+        },
+        render: function (stage, params) {
+            this.set_stage(stage);
+            var tiles = this.retile();
+
+            _.each(tiles, function (tile) {
+                if (!tile.loaded) {
+                    tile.load();
+                }
+            }, this);
         },
 
-        cache: function(stage){
-            if (this.container.x || this.container.y || this.container.scaleX != 1 || this.container.scaleY != 1){
+        cache: function (stage) {
+            if (this.container.x || this.container.y || this.container.scaleX != 1 || this.container.scaleY != 1) {
                 throw new Error('cannot cache offset/scaled containers');
             }
-            this.container.cache(0,0,stage.canvas.width, stage.canvas.height);
+            this.container.cache(0, 0, stage.canvas.width, stage.canvas.height);
         },
 
-        ensure_container: function (stage) {
-            var stage_container = stage.getChildByName(this.name);
-            if (!stage_container) {
-                stage_container = new createjs.Container();
-                stage_container.name = this.name;
-                stage.addChild(stage_container);
+        tile_width: function () {
+            return 100;
+        },
+
+        tile_height: function () {
+            return 100;
+        },
+
+        scale_layer: function () {
+            if (!this._scale_layer) {
+                this._scale_layer = new createjs.Container();
+                this.stage_layer().addChild(this._scale_layer);
+            }
+            return this._scale_layer;
+        },
+
+        offset_layer: function () {
+            if (!this._offset_layer) {
+                this._offset_layer = new createjs.Container();
+                this.scale_layer().addChild(this._offset_layer);
+            }
+            return this._offset_layer;
+        },
+
+        scale: function (s) {
+            if (arguments.length > 0) {
+                this._scale = s;
+            }
+            return this._scale;
+        },
+
+        render_sublayers: function (render_params) {
+            this.scale(render_params.scale || 1);
+            var gc = this.scale_layer();
+            gc.scaleX = gc.scaleY = this.scale();
+            var gct = this.grid_container_t;
+            gct.x = render_params.left;
+            gct.y = render_params.top;
+        },
+
+        set_stage: function (stage) {
+            this.stage = stage;
+        },
+
+        stage_layer: function () {
+            if (!this.container) {
+                var stage_container = this.stage.getChildByName(this.name);
+                if (!stage_container) {
+                    stage_container = new createjs.Container();
+                    stage_container.name = this.name;
+                    this.stage.addChild(stage_container);
+                }
                 this.container = stage_container;
             }
-            return stage_container;
+            return this.container;
         },
 
-        event: function(name, e){
-            if (this.events[name]){
+        event: function (name, e) {
+            if (this.events[name]) {
                 console.log('handling event ', name);
                 return this.events[name](e);
             } else {
                 console.log('no handler for event ', name);
                 return false;
             }
+        },
+
+        local_tl: function () {
+            return this.offset_layer().globalToLocal(0, 0);
+        },
+
+        local_br: function () {
+            return this.offset_layer().globalToLocal(this.stage.canvas.width, this.stage.canvas.height);
+        },
+
+        tile_range: function () {
+            var tl = this.tile(0, 0);
+            var ltl = this.local_tl();
+            tl.move_around(ltl.x, ltl.y);
+
+            var br = this.tile(tl.i, tl.j);
+            var lbr = this.local_br();
+            br.move_around(lbr.x, lbr.y);
+
+            return {tl: tl, br: br};
+        },
+
+        tile: function (x, y) {
+            return new EASEL_MAP.Layer_Tile(this, x, y);
+        },
+
+        add_tile_shapes: function (tile) {
+
+        },
+
+        retile: function () {
+            // return;
+            var tr = this.tile_range();
+
+            var left = tr.tl.i;
+            var right = tr.br.i;
+            var top = tr.tl.j;
+            var bottom = tr.br.j;
+
+            var old_tiles = this.tiles.filter(function (tile) {
+                return tile.i >= left &&
+                    tile.i <= right &&
+                    tile.j >= top &&
+                    tile.j <= bottom;
+            });
+
+            var self = this;
+            _.each(_.range(left, right + 1), function (i) {
+                _.each(_.range(top, bottom + 1), function (j) {
+                    var old_tile = _.find(old_tiles, function (tile) {
+                        return tile.i == i && tile.j == j;
+                    });
+                    if (!old_tile) {
+                        old_tiles.push(this.tile(i, j));
+                    }
+                }, this);
+            }, this)
+            return old_tiles;
         }
 
     };
@@ -885,14 +1144,20 @@ var EASEL_MAP = {
             var range = this.cell_range(stage);
             var fc = this.fill_container;
 
+            var min_x = this.grid_params.min_x;
+            var max_x = this.grid_params.max_x;
+
             var top_left_hex = range.top_left_hex;
             var bottom_right_hex = range.bottom_right_hex;
             var self = this;
             _.each(_.range(top_left_hex.row, bottom_right_hex.row), function (row) {
                 _.each(_.range(top_left_hex.col, bottom_right_hex.col), function (col) {
                     var cell = new EASEL_MAP.class.Hex_Cell(row, col, self.grid_params.hex_size);
-                    cell.render(render_params, fc, self);
-                    self.cells.push(cell);
+                    var x = cell.center_x();
+                    if ((x  >= min_x) && (x <= max_x)){
+                        cell.render(render_params, fc, self);
+                        self.cells.push(cell);
+                    }
                 })
             });
             var draw_scale = this.cells[0].draw_scale(render_params.scale);
@@ -924,7 +1189,9 @@ var EASEL_MAP = {
         label_increment: 6,
         line_color: 'rgb(51,153,255)',
         axis_line_color: 'rgb(255,51,204)',
-        heavy_line_color: 'rgb(0,0,102)'
+        heavy_line_color: 'rgb(0,0,102)',
+        min_x: -6000,
+        max_x: 6000
     };
 
     EASEL_MAP.hex_layer = function (name, map, params) {
