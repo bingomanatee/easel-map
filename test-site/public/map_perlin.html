@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Map Test</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            background-color: rgb(51,51,51);
+        }
+    </style>
+</head>
+<body>
+<h1>Map</h1>
+<canvas id="map" width="800" height="500"></canvas>
+<div>
+
+    <button id="left">Left</button>
+    <button id="right">Right</button>
+    <button id="up">Up</button>
+    <button id="down">Down</button>
+    <button id="zoom_in">Zoom In</button>
+    <button id="zoom_out">Zoom Out</button>
+   Hex size: <select id="hex_size">
+    <option value="100">100</option>
+    <option value="200">200</option>
+    <option value="300">300</option>
+   </select>
+    <div class="stat">Left: <b id="left_value"></b>, top: <b id="top_value"></b>, scale <b id="scale_value"></b></div>
+</div>
+
+<script src="/js/vendor/jquery-1.10.2.min.js" defer="defer">
+
+</script>
+
+<script src="/js/vendor/create.js" defer="defer">
+
+</script>
+
+<script src="/js/easel-mapper.js" defer="defer">
+
+</script>
+
+<script src="/js/draw_map_perlin.js" defer="defer">
+</script>
+</body>
+</html>
