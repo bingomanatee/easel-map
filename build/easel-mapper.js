@@ -298,21 +298,12 @@ var EASEL_MAP = {
 
         load: function (scale) {
             this.container().removeAllChildren();
+            if (!scale) scale = this.scale();
 
-            var old_cache = _.find(this.layer.caches, function (cache_item) {
-                return cache_item.tile.i == this.i && cache_item.tile.j == this.j && cache_item.scale == scale;;
-            }, this);
-
-            if (old_cache) {
-                this.cache(1/scale, true);
-                this.container().cacheCanvas = old_cache.cacheCanvas;
-                console.log('restoring cache for tile ', this.i, this.j, scale);
-            } else {
-                console.log('drawing for the first time tile ', this.i, this.j, 'at scale', scale);
                 this.layer.add_tile_shapes(this);
                 this.loaded_scale = scale;
-                this.cache();
-            }
+                this.cache(scale);
+
             this.loaded = true;
         },
 
@@ -351,7 +342,7 @@ var EASEL_MAP = {
             }
         },
 
-        cache: function (scale, noSave) {
+        cache: function (scale) {
             this.container().cache(
                 Math.floor(this.left() - 1),
                 Math.floor(this.top() - 1),
@@ -359,9 +350,6 @@ var EASEL_MAP = {
                 Math.ceil(this.height() + 2),
                 scale
             );
-            if (!noSave) {
-                this.layer.caches.push({scale: scale, tile: this, cacheCanvas: this.container().cacheCanvas});
-            }
         },
 
         left: function () {
