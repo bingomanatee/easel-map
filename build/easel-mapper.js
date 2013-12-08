@@ -166,60 +166,21 @@ var EASEL_MAP = {
 
 })(window);;
 (function (window) {
-    EASEL_MAP.util.Perlin_Canvas = function (scale_count, bw, bh) {
-        this.scale_count = scale_count;
+
+    // generates perlin based on overlapping scaled bitmaps
+
+    EASEL_MAP.util.Perlin_Canvas = function (scale, bw, bh) {
+
         this.bitmap_width = bw || 200;
         this.bitmap_height = bh || 100;
 
-        this.scales = _.reduce(_.range(0, scale_count), function (out, index) {
-            var n = _.last(out);
-            n *= _.first(_.shuffle([1.25, 1.5, 1.75, 2, 2.5, 3]));
-            out.push(n);
-            return out;
-        }, [0.25]);
+        this.scales = scale;
 
         this.offsets = _.map(this.scales, function () {
             return [Math.random() * this.bitmap_width, Math.random() * this.bitmap_height];
         }, this);
     };
 
-    var INCREMENT = 7;
-
-    var MIN_RADIUS = 1;
-    var MAX_RADIUS = 5;
-    var RADIUS_POWER = 0.75;
-
-    function _random_radius() {
-        return Math.pow(Math.random() * (MAX_RADIUS - MIN_RADIUS) + MIN_RADIUS, RADIUS_POWER);
-    }
-
-    var _grey = _.template('rgb(<%= grey %>, <%= grey %>, <%= grey %>)');
-
-    function _random_grey(alpha) {
-        var grey = Math.floor(Math.random() * 255);
-        return _grey({grey: grey, alpha: alpha});
-    }
-
-    function _circles_on_shape(scale, width, height) {
-        var shape = new createjs.Shape();
-        _.each(_.shuffle(_.range(-MAX_RADIUS * 4, width + MAX_RADIUS * 4, INCREMENT)), function (x) {
-            _.each(_.shuffle(_.range(-MAX_RADIUS * 2, height + MAX_RADIUS, INCREMENT)), function (y) {
-                x += Math.random() * INCREMENT - INCREMENT/2;
-                y += Math.random() * INCREMENT - INCREMENT/2;
-                shape.graphics.f(_random_grey((Math.random() + Math.random())))
-                    .dc(x, y, _random_radius()).ef();
-            })
-        });
-        var s = Math.max(2, scale * 2);
-        shape.filters = [
-            new createjs.BlurFilter(s, s, 2),
-            new createjs.ColorFilter(2, 2, 2, 1,-120,-120, -120)
-        ];
-
-        shape.cache(0, 0, width, height);
-
-        return shape;
-    }
 
     EASEL_MAP.util.Perlin_Canvas.prototype = {
 
@@ -237,20 +198,21 @@ var EASEL_MAP = {
             var stage = new createjs.Stage(this.canvas);
             stage.addChild(r);
 
-            _.each(_.range(0, this.scale_count), function (scale, i) {
+            _.each(this.scales, function (scale, i) {
 
                 var a_canvas = document.createElement('canvas');
                 var a_stage = new createjs.Stage(a_canvas);
-                a_stage.addChild(_circles_on_shape(2, width, height));
-                a_stage.update();
+/*                a_stage.addChild(_circles_on_shape(2, width, height));
+                a_stage.update(); */
 
                 var shape = new createjs.Shape();
                 shape.alpha = i ? 0.5 : 1;
                 stage.addChild(shape);
 
-                var matrix = new createjs.Matrix2D((scale + 1) / 4, 0, 0, (scale + 1) / 4, this.offsets[scale][0], this.offsets[scale][1]);
-
-                shape.graphics.bf(this.bitmaps[scale], 'repeat', matrix).dr(0, 0, width, height);
+                var matrix = new createjs.Matrix2D(scale, 0, 0, scale, 0,0);
+                var bitmap = this.bitmaps[i];
+                console.log('bitmap: ', bitmap);
+                shape.graphics.bf(bitmap, 'repeat', matrix).dr(0, 0, width, height);
             }, this);
 
             stage.update();
@@ -272,6 +234,28 @@ var EASEL_MAP = {
                 canvas.width = width;
                 canvas.height = height;
 
+                var ctx = canvas.getContext('2d');
+                var id = ctx.getImageData(0,0,width, height);
+
+                var value = 0;
+                _.each(id.data, function(v, index){
+                   switch(index % 4){
+                       case 3:
+                           id.data[index] = 255;
+                           break;
+
+                       case 0:
+                           value = Math.random() > 0.5 ? 255 : 0;
+                           id.data[index] = value;
+                           break;
+
+                       default:
+                           id.data[index] = value;
+                   }
+                });
+
+                ctx.putImageData(id, 0, 0);
+                /*
                 var stage = new createjs.Stage(canvas);
                 var r = new createjs.Shape();
              //   r.graphics.f('rgb(128,128,128)').r(0, 0, width, height).ef();
@@ -286,7 +270,8 @@ var EASEL_MAP = {
                 stage.update();
                 stage.removeAllChildren();
 
-                console.log('random rendered in', (new Date().getTime() - t.getTime()), 'ms');
+                console.log('random rendered in', (new Date().getTime() - t.getTime()), 'ms');*/
+
                 return canvas;
             }
         }
@@ -299,6 +284,9 @@ var EASEL_MAP = {
 
     EASEL_MAP.Layer_Tile = function (layer, i, j) {
         this.layer = layer;
+
+        if (!this.layer.caches) this.layer.caches = [];
+
         this.i = i;
         this.j = j;
 
@@ -308,10 +296,23 @@ var EASEL_MAP = {
 
     EASEL_MAP.Layer_Tile.prototype = {
 
-        load: function () {
+        load: function (scale) {
             this.container().removeAllChildren();
-            this.layer.add_tile_shapes(this);
-            this.cache();
+
+            var old_cache = _.find(this.layer.caches, function (cache_item) {
+                return cache_item.tile.i == this.i && cache_item.tile.j == this.j && cache_item.scale == scale;;
+            }, this);
+
+            if (old_cache) {
+                this.cache(1/scale, true);
+                this.container().cacheCanvas = old_cache.cacheCanvas;
+                console.log('restoring cache for tile ', this.i, this.j, scale);
+            } else {
+                console.log('drawing for the first time tile ', this.i, this.j, 'at scale', scale);
+                this.layer.add_tile_shapes(this);
+                this.loaded_scale = scale;
+                this.cache();
+            }
             this.loaded = true;
         },
 
@@ -350,7 +351,7 @@ var EASEL_MAP = {
             }
         },
 
-        cache: function (scale) {
+        cache: function (scale, noSave) {
             this.container().cache(
                 Math.floor(this.left() - 1),
                 Math.floor(this.top() - 1),
@@ -358,6 +359,9 @@ var EASEL_MAP = {
                 Math.ceil(this.height() + 2),
                 scale
             );
+            if (!noSave) {
+                this.layer.caches.push({scale: scale, tile: this, cacheCanvas: this.container().cacheCanvas});
+            }
         },
 
         left: function () {
@@ -405,7 +409,7 @@ var EASEL_MAP = {
                 console.log('top', this.top(), '>= range.bottom', range.bottom);
                 return false;
             }
-            if( this.bottom() <= range.top){
+            if (this.bottom() <= range.top) {
                 console.log('bottom', this.bottom(), '<= range.top', range.top);
                 return false;
             }
@@ -451,8 +455,8 @@ var EASEL_MAP = {
             var tiles = this.retile();
 
             _.each(tiles, function (tile) {
-                if (!tile.loaded) {
-                    tile.load();
+                if ((!tile.loaded ) || (tile.loaded_scale != this.scale())) {
+                    tile.load(this.scale());
                 }
             }, this);
         },

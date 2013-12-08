@@ -32,7 +32,7 @@
 
         rect.graphics.f('red').r(0, 0, rect.width, rect.height);
 
-        var heightmap = new EASEL_MAP.util.Perlin_Canvas(5, 400, 300);
+        var heightmap = new EASEL_MAP.util.Perlin_Canvas([1, 8, 16, 32, 64], 400, 300);
         var map_width = map.right - map.left;
         var map_height = map.bottom - map.top;
         var heightmap_width = map_width / MAP_GREY_RATIO;
@@ -45,27 +45,41 @@
 
         var INC = 10;
         shape_layer.add_tile_shapes = function (tile) {
-            console.log('adding to tile', tile.i, tile.j);
 
-            var h = tile.layer.tile_width() / INC;
-            var v = tile.layer.tile_height() / INC;
-            var rect = new createjs.Shape();
-            var shape = new createjs.Shape();
-            if ((tile.i + tile.j) % 2) {
-                shape.graphics.f('rgb(204, 204, 255)');
-            } else {
-                shape.graphics.f('rgb(204, 255, 255)');
+
+            var t = new Date().getTime();
+
+            var divs = 1;
+
+            if (this.scale() >= 1) {
+                divs = 16;
+            } else if (this.scale() >= 0.5) {
+                divs = 8;
+            } else if (this.scale() >= 0.25) {
+                divs = 4;
+            } else if (this.scale() >= 0.0625) {
+                divs = 2;
             }
-            shape.graphics.r(tile.left(), tile.top(), this.tile_width(), this.tile_height());
-            tile.container().addChild(shape);
+
+            var rect = new createjs.Shape();
+            var back_fill = new createjs.Shape();
+
+            if ((tile.i + tile.j) % 2) {
+                back_fill.graphics.f('rgb(204, 204, 255)');
+            } else {
+                back_fill.graphics.f('rgb(204, 255, 255)');
+            }
+            back_fill.graphics.r(tile.left(), tile.top(), this.tile_width(), this.tile_height());
+            tile.container().addChild(back_fill);
             tile.container().addChild(rect);
 
-            console.log('getting shapes from left... right ', tile.left(), tile.right(), h);
-            console.log('getting shapes from left... right ', tile.top(), tile.bottom(), v);
+            var v = tile.height() / divs;
+            var h = tile.width() / divs;
 
+            var shape_count = 0;
             _.each(_.range(tile.left(), tile.right(), h), function (x) {
                 _.each(_.range(tile.top(), tile.bottom(), v), function (y) {
-
+                    ++shape_count;
                     var center_x = x - h / 2;
                     var center_y = y - v / 2;
 
@@ -75,15 +89,7 @@
                 });
             });
 
-            return;
-
-            if (tile.contains(rect.range)) {
-                tile.container().addChild(rect);
-            }
-
-            if (tile.contains(disc.range)) {
-                tile.container().addChild(disc);
-            }
+          //  console.log('adding to tile', tile.i, tile.j, new Date().getTime() - t, 'ms', shape_count, 'shapes');
         };
 
         var canvas = $('canvas')[0];
@@ -130,6 +136,7 @@
                 render_params.scale *= 2;
                 map.render(render_params, stage);
             }
+            stat();
         });
 
         $('#zoom_out').click(function () {
@@ -137,6 +144,7 @@
                 render_params.scale /= 2;
                 map.render(render_params, stage);
             }
+            stat();
         });
 
         $('#hex_size').change(function (e) {

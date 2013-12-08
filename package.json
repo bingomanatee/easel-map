@@ -22,7 +22,8 @@
   "devDependencies": {
     "grunt-contrib-concat": "~0.3.0",
     "grunt-contrib-uglify": "~0.2.4",
-    "tap": "~0.4.4"
+    "tap": "~0.4.4",
+    "node-static": "~0.7.2"
   },
   "dependencies": {
     "perlin": "~1.0.0"
