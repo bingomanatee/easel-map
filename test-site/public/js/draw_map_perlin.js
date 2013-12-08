@@ -32,7 +32,7 @@
 
         rect.graphics.f('red').r(0, 0, rect.width, rect.height);
 
-        var heightmap = new EASEL_MAP.util.Perlin_Canvas([1, 8, 16, 32, 64], 400, 300);
+        var heightmap = new EASEL_MAP.util.Perlin_Canvas( [0.5,1, 4, 8, 16, 32, 64], 400, 300);
         var map_width = map.right - map.left;
         var map_height = map.bottom - map.top;
         var heightmap_width = map_width / MAP_GREY_RATIO;
@@ -45,7 +45,7 @@
 
         var INC = 10;
         shape_layer.add_tile_shapes = function (tile) {
-
+            console.log('drawing tile ', tile.i, 'x', tile.j, 'at', tile.layer.scale());
 
             var t = new Date().getTime();
 
@@ -69,7 +69,7 @@
             } else {
                 back_fill.graphics.f('rgb(204, 255, 255)');
             }
-            back_fill.graphics.r(tile.left(), tile.top(), this.tile_width(), this.tile_height());
+            back_fill.graphics.r(tile.left(), tile.top(), this.tile_width, this.tile_height);
             tile.container().addChild(back_fill);
             tile.container().addChild(rect);
 
@@ -89,7 +89,14 @@
                 });
             });
 
-          //  console.log('adding to tile', tile.i, tile.j, new Date().getTime() - t, 'ms', shape_count, 'shapes');
+            var boundry_rect = new createjs.Shape();
+            boundry_rect.graphics.s('red').ss(2).dr(tile.left(), tile.top(), tile.width(), tile.height());
+            tile.container().addChild(boundry_rect);
+
+            var text = new createjs.Text(tile.i + 'x' + tile.j, (10 / this.scale()) + 'pt Arial', 'red');
+            text.x = tile.left() + 10 / this.scale();
+            text.y = tile.top() + 10/this.scale();
+            tile.container().addChild(text);
         };
 
         var canvas = $('canvas')[0];

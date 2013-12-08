@@ -206,10 +206,11 @@ var EASEL_MAP = {
                 a_stage.update(); */
 
                 var shape = new createjs.Shape();
-                shape.alpha = i ? 0.5 : 1;
+                shape.alpha = 1/(i + 1);
                 stage.addChild(shape);
 
-                var matrix = new createjs.Matrix2D(scale, 0, 0, scale, 0,0);
+                var offset = this.offsets[i];
+                var matrix = new createjs.Matrix2D(scale, 0, 0, scale, 0,0, offset[0], offset[1]);
                 var bitmap = this.bitmaps[i];
                 console.log('bitmap: ', bitmap);
                 shape.graphics.bf(bitmap, 'repeat', matrix).dr(0, 0, width, height);
@@ -289,8 +290,6 @@ var EASEL_MAP = {
 
         this.i = i;
         this.j = j;
-
-        this.layer.tiles.push(this);
         this.loaded = false;
     }
 
@@ -369,11 +368,11 @@ var EASEL_MAP = {
         },
 
         width: function () {
-            return this.layer.tile_width();
+            return this.layer.tile_width;
         },
 
         height: function () {
-            return this.layer.tile_height();
+            return this.layer.tile_height;
         },
 
         container: function () {
@@ -410,12 +409,16 @@ var EASEL_MAP = {
 })(window);;
 (function (window) {
 
+    var DEBUG_TILES = true;
+    var DEFAULT_TILE_SIZE = 200;
+
     EASEL_MAP.Layer = function (name, map, params) {
         if (!_.isString(name)) {
             throw new Error('name must be string');
         }
         this.name = name;
         this.map = map;
+        this.tile_width = this.tile_height = DEFAULT_TILE_SIZE;
         _.extend(this, params);
         this.order = map.layers.length;
         this.name = name;
@@ -443,7 +446,7 @@ var EASEL_MAP = {
             var tiles = this.retile();
 
             _.each(tiles, function (tile) {
-                if ((!tile.loaded ) || (tile.loaded_scale != this.scale())) {
+                if (tile.loaded_scale != this.scale()) {
                     tile.load(this.scale());
                 }
             }, this);
@@ -454,14 +457,6 @@ var EASEL_MAP = {
                 throw new Error('cannot cache offset/scaled containers');
             }
             this.container.cache(0, 0, stage.canvas.width, stage.canvas.height);
-        },
-
-        tile_width: function () {
-            return 200;
-        },
-
-        tile_height: function () {
-            return 200;
         },
 
         scale_layer: function () {
@@ -515,10 +510,8 @@ var EASEL_MAP = {
 
         event: function (name, e) {
             if (this.events[name]) {
-                console.log('handling event ', name);
                 return this.events[name](e);
             } else {
-                console.log('no handler for event ', name);
                 return false;
             }
         },
@@ -558,7 +551,7 @@ var EASEL_MAP = {
         },
 
         add_tile_shapes: function (tile) {
-
+            throw new Error('must be overridden by layer definition')
         },
 
         retile: function () {
@@ -577,6 +570,10 @@ var EASEL_MAP = {
                     tile.j <= bottom;
             });
 
+            if (DEBUG_TILES){
+                var grouped_tiles = _.groupBy(_.map(old_tiles, function(t){return _.pick(t, 'i', 'j');}), 'i');
+            }
+
             var self = this;
             _.each(_.range(left, right + 1), function (i) {
                 _.each(_.range(top, bottom + 1), function (j) {
@@ -584,7 +581,13 @@ var EASEL_MAP = {
                         return tile.i == i && tile.j == j;
                     });
                     if (!old_tile) {
-                        old_tiles.push(this.tile(i, j));
+                        if (DEBUG_TILES){
+                            console.log('Adding new tile ', i, j);
+                        }
+                        var tile = this.tile(i, j);
+
+                        this.tiles.push(tile);
+                        old_tiles.push(tile);
                     }
                 }, this);
             }, this)
