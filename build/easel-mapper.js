@@ -162,6 +162,18 @@ var _ = require('underscore');}
 })(window);;
 (function (window) {
 
+    window.EASEL_MAP.Map.prototype.refresh = function (layer_names ) {
+
+        _.each(this.layers, function(layer){
+            if (!layer_names || _.contains(layer_names, layer.name)){
+                layer.refresh();
+            }
+        })
+    }
+
+})(window);;
+(function (window) {
+
     // generates perlin based on overlapping scaled bitmaps
 
     window.EASEL_MAP.util.Perlin_Canvas = function (scale, bw, bh) {
@@ -278,6 +290,21 @@ var _ = require('underscore');}
 })(window);;
 (function (window) {
 
+    /**
+     * The layer tile is a region of the map.
+     * The map is broken into smaller regions to increase the utility of caching,
+     * reduce the overhead of mouse click tracking, and because Google does it.
+     *
+     * No matter what the map scale is tiles always take up the same amount of
+     * visual space. that is, if you zoom in, a given tile will have four times
+     * as much stuff on it.
+     *
+     * @param layer {EASEL_MAP.Layer}
+     * @param i {int} the column/x index
+     * @param j {int} the row/y index
+     *
+     * @constructor
+     */
     window.EASEL_MAP.Layer_Tile = function (layer, i, j) {
         this.layer = layer;
 
@@ -290,15 +317,27 @@ var _ = require('underscore');}
 
     window.EASEL_MAP.Layer_Tile.prototype = {
 
+        /**
+         * This is the main "draw" routine of the tile.
+         * It presumes the tiles have been created.
+         * it calls the local add_tile_shapes to load custom content
+         * then caches itself.
+         *
+         * @param scale
+         */
         load: function (scale) {
             this.container().removeAllChildren();
             if (!scale) scale = this.scale();
 
             this.layer.add_tile_shapes(this);
-            this.loaded_scale = scale;
             this.cache(scale);
+            this.loaded_scale = scale;
 
             this.loaded = true;
+        },
+
+        refresh: function(){
+            this.container().uncache();
         },
 
         move_around: function (x, y) {
@@ -341,14 +380,19 @@ var _ = require('underscore');}
             var top = Math.floor(this.top() - 1);
             var width = Math.ceil(this.layer.tile_width / scale + 2);
 
-            console.log('caching', left, top, width, 'at scale', scale);
-            return;
-            this.container().cache(
-                left,
-                top,
-                width,
-                width
-            );
+           // console.log('caching', left, top, width, 'at scale', scale);
+
+            if ((this.container().cacheLayer) && this.loaded_scale == scale){
+                this.container().updateCache();
+            } else {
+                this.container().cache(
+                    left,
+                    top,
+                    width,
+                    width,
+                    scale
+                );
+            }
         },
 
         left: function () {
@@ -455,6 +499,7 @@ var _ = require('underscore');}
         },
 
         cache: function (stage) {
+            console.log('caching layer', this);
             if (this.container.x || this.container.y || this.container.scaleX != 1 || this.container.scaleY != 1) {
                 throw new Error('cannot cache offset/scaled containers');
             }
@@ -530,22 +575,22 @@ var _ = require('underscore');}
             var tl = this.tile(0, 0);
             var ltl = this.local_tl();
 
-            ltl.x = Math.max(this.map.left, ltl.x);
-            ltl.y = Math.max(this.map.top, ltl.y);
+         //   ltl.x = Math.max(this.map.left, ltl.x);
+        //    ltl.y = Math.max(this.map.top, ltl.y);
 
             tl.move_around(ltl.x, ltl.y);
 
             var br = this.tile(tl.i, tl.j);
             var lbr = this.local_br();
 
-            lbr.x = Math.min(this.map.right,lbr.x);
-            lbr.y = Math.min(this.map.bottom, lbr.y);
+          //  lbr.x = Math.min(this.map.right,lbr.x);
+         //   lbr.y = Math.min(this.map.bottom, lbr.y);
 
             br.move_around(lbr.x, lbr.y);
 
 
 
-            return {tl: tl, br: br};
+            return {tl: _.pick(tl, 'i', 'j'), br: _.pick(br, 'i', 'j')};
         },
 
         tile: function (x, y) {
@@ -556,9 +601,17 @@ var _ = require('underscore');}
             throw new Error('must be overridden by layer definition')
         },
 
+        refresh: function(){
+            _.each(this.tiles, function(tile){
+                tile.refresh();
+                tile.load(this.scale());
+            }, this);
+        },
+
         retile: function () {
             // return;
             var tr = this.tile_range();
+            console.log('tile range:', JSON.stringify(tr));
 
             var left = tr.tl.i;
             var right = tr.br.i;
@@ -573,8 +626,8 @@ var _ = require('underscore');}
             });
 
             var self = this;
-            _.each(_.range(left, right + 1), function (i) {
-                _.each(_.range(top, bottom + 1), function (j) {
+            _.each(_.range(left, right + 2), function (i) {
+                _.each(_.range(top, bottom + 2), function (j) {
                     var old_tile = _.find(old_tiles, function (tile) {
                         return tile.i == i && tile.j == j;
                     });
@@ -643,22 +696,21 @@ var _ = require('underscore');}
         return k * radius * ROW_UNIT_SCALE;
     }
 
-    function _calc_points(row, col, radius) {
+    window.EASEL_MAP.util.draw_hex.points = function (row, col, radius) {
 
-        var x = _center_x(row, col, radius);
-        var y = _center_y(row, col, radius);
+        var center = window.EASEL_MAP.util.draw_hex.placement(row, col, radius, true);
 
         var xs = [
-            x + -radius * radius,
-            x + -radius * SIN_30 * radius,
-            x + radius * SIN_30 * radius,
-            x + radius * radius
+            center.center_x + -radius,
+            center.center_x  -radius * COS_60 ,
+            center.center_x + radius * COS_60 ,
+            center.center_x + radius
         ];
 
         var ys = [
-            y + -radius * COS_30 * radius,
-            y,
-            y + radius * COS_30 * radius];
+            center.center_y -radius * SIN_60 ,
+            center.center_y,
+            center.center_y + radius * SIN_60 ];
 
         return [
             xs[0], ys[1],
@@ -721,30 +773,29 @@ var _ = require('underscore');}
             top_left_placement = window.EASEL_MAP.util.draw_hex.placement(top_row, --left_col, radius);
         }
 
-        if (1) {
-            right_col = Math.floor(right / (radius * COL_UNIT_SCALE));
-            bottom_row = Math.floor(bottom / (radius * ROW_UNIT_SCALE));
+        right_col = Math.floor(right / (radius * COL_UNIT_SCALE));
+        bottom_row = Math.floor(bottom / (radius * ROW_UNIT_SCALE));
 
-            var bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(bottom_row, right_col, radius);
-            // ensuring that bottom_right_placement starts inside target area
-            while (failsafe-- > 0 && bottom_right_placement.top > bottom) {
-                if (DEBUG_EXTENT)   console.log('brp.bottom: %s, top: %s, r: %s, c: %s', bottom_right_placement.bottom, top, bottom_row, right_col);
-                bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(--bottom_row, right_col, radius);
-            }
-            while (failsafe-- > 0 && bottom_right_placement.left > right) {
-                if (DEBUG_EXTENT)  console.log('brp.bottom: %s, top: %s, r: %s, c: %s', bottom_right_placement.bottom, top, bottom_row, right_col);
-                bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(bottom_row, --right_col, radius);
-            }
-
-            while (failsafe-- > 0 && bottom_right_placement.top < bottom) {
-                if (DEBUG_EXTENT)    console.log('brp.bottom: %s, top: %s, r: %s, c: %s', bottom_right_placement.bottom, top, bottom_row, right_col);
-                bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(++bottom_row, right_col, radius);
-            }
-            while (failsafe-- > 0 && bottom_right_placement.left < right) {
-                if (DEBUG_EXTENT)   console.log('brp.bottom: %s, top: %s, r: %s, c: %s', bottom_right_placement.bottom, top, bottom_row, right_col);
-                bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(bottom_row, ++right_col, radius);
-            }
+        var bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(bottom_row, right_col, radius);
+        // ensuring that bottom_right_placement starts inside target area
+        while (failsafe-- > 0 && bottom_right_placement.top > bottom) {
+            if (DEBUG_EXTENT)   console.log('brp.bottom: %s, top: %s, r: %s, c: %s', bottom_right_placement.bottom, top, bottom_row, right_col);
+            bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(--bottom_row, right_col, radius);
         }
+        while (failsafe-- > 0 && bottom_right_placement.left > right) {
+            if (DEBUG_EXTENT)  console.log('brp.bottom: %s, top: %s, r: %s, c: %s', bottom_right_placement.bottom, top, bottom_row, right_col);
+            bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(bottom_row, --right_col, radius);
+        }
+
+        while (failsafe-- > 0 && bottom_right_placement.top < bottom) {
+            if (DEBUG_EXTENT)    console.log('brp.bottom: %s, top: %s, r: %s, c: %s', bottom_right_placement.bottom, top, bottom_row, right_col);
+            bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(++bottom_row, right_col, radius);
+        }
+        while (failsafe-- > 0 && bottom_right_placement.left < right) {
+            if (DEBUG_EXTENT)   console.log('brp.bottom: %s, top: %s, r: %s, c: %s', bottom_right_placement.bottom, top, bottom_row, right_col);
+            bottom_right_placement = window.EASEL_MAP.util.draw_hex.placement(bottom_row, ++right_col, radius);
+        }
+
 
         return {
             top: top_row,
@@ -760,7 +811,7 @@ var _ = require('underscore');}
     window.EASEL_MAP.util.draw_hex.draw = function (row, col, radius, color, shape) {
         if (!shape) shape = new createjs.Shape();
         shape.graphics.f(color);
-        var points = _calc_points(row, col, radius);
+        var points = window.EASEL_MAP.util.draw_hex.points(row, col, radius);
 
         shape.graphics.mt(points[0], points[1]);
         var os = 2;
@@ -768,6 +819,7 @@ var _ = require('underscore');}
             shape.graphics.lt(points[os], points[os + 1]);
             os += 2;
         }
+        shape.graphics.lt(points[0], points[1]);
         shape.graphics.ef();
         return shape;
     };

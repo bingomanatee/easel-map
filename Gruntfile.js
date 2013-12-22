@@ -16,6 +16,7 @@ module.exports = function (grunt) {
                     'lib/util/grid_extent.js',
                     'lib/map/index.js',
                     'lib/map/render.js',
+                    'lib/map/refresh.js',
                     'lib/perlin_canvas/index.js',
                     'lib/layer/Layer_Tile.js',
                     'lib/layer/index.js',

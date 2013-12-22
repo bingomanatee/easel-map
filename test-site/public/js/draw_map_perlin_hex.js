@@ -6,33 +6,53 @@
         var MAP_GREY_RATIO = 10;
         var shape_layer = map.add_layer('shapes');
 
-        var rect = new createjs.Shape();
-        rect.x = 150;
-        rect.y = 250;
-        rect.width = 300;
-        rect.height = 200;
+        var hex_size = 10;
 
-        rect.range = {
-            left: rect.x,
-            top: rect.y,
-            right: rect.x + rect.width,
-            bottom: rect.y + rect.height};
+        var _grey_color = _.template('hsl(0, 0%, <%= grey %>%)');
 
-        var disc = new createjs.Shape();
-        disc.x = 200;
-        disc.y = 200;
-        disc.radius = 75;
-        disc.range = {
-            left: disc.x - disc.radius,
-            top: disc.y - disc.radius,
-            right: disc.x + disc.radius,
-            bottom: disc.y + disc.radius};
+        function grey_from_255(grey) {
+            grey *= 100 / 255;
+            return _grey_color({grey: grey});
+        }
 
-        disc.graphics.f('blue').dc(0, 0, disc.radius);
+        var caches_hex_shapes = [];
 
-        rect.graphics.f('red').r(0, 0, rect.width, rect.height);
+        function _hex_cache(radius) {
+            var old_cache = _.find(caches_hex_shapes, function (cache) {
+                return cache.radius == radius;
+            });
 
-        var heightmap = new EASEL_MAP.util.Perlin_Canvas( [0.25, 0.5, 1, 4, 8, 16, 32, 64, 128], 400, 300);
+            if (!old_cache) {
+                old_cache = {
+                    radius: radius, hexes: []
+                };
+                caches_hex_shapes.push(old_cache);
+            }
+
+            return old_cache;
+        }
+
+        function _hex_shape(row, column, radius, index, cache) {
+            if (!cache) {
+                cache = _hex_cache(radius);
+            }
+
+            var shape = cache.hexes[index];
+            if (!shape) {
+                cache.hexes[index] = shape = window.EASEL_MAP.util.draw_hex.draw(0, 0, radius, 'white');
+            }
+
+            var position = window.EASEL_MAP.util.draw_hex.placement(row, column, radius, true);
+
+            shape.x = position.center_x;
+            shape.y = position.center_y;
+
+            return {
+                shape: shape, cache: cache
+            }
+        }
+
+        var heightmap = new EASEL_MAP.util.Perlin_Canvas([0.25, 0.5, 1, 4, 8, 16, 32, 64, 128], 400, 300);
         heightmap.alpha_pow = 2.5;
         var map_width = map.right - map.left;
         var map_height = map.bottom - map.top;
@@ -46,8 +66,8 @@
 
         var INC = 10;
         shape_layer.add_tile_shapes = function (tile) {
-         //   console.log('drawing tile ', tile.i, 'x', tile.j, 'at', tile.layer.scale());
-            var cell_radius = 100 *  tile.layer.scale();
+            console.log('drawing tile ', tile.i, 'x', tile.j, 'at', tile.layer.scale());
+            var cell_radius = hex_size / this.scale();
 
             var t = new Date().getTime();
 
@@ -61,18 +81,30 @@
             } else {
                 back_fill.graphics.f('rgb(204, 255, 255)');
             }
-            back_fill.graphics.r(tile.left(), tile.top(), this.tile_width, this.tile_height);
+            back_fill.graphics.r(tile.left(), tile.top(), this.tile_width / this.scale(), this.tile_height / this.scale());
             tile.container().addChild(back_fill);
+            var scale = this.scale();
             tile.container().addChild(hexagons);
-            var hex_range = EASEL_MAP.util.draw_hex.hex_extent(tile.left(), tile.right(),tile.top(), tile.bottom(), cell_radius);
+            var hex_range = EASEL_MAP.util.draw_hex.hex_extent(tile.left(), tile.right(), tile.top(), tile.bottom(), cell_radius);
 
-            _.each(_.range(hex_range.left, hex_range.right), function (col) {
-                _.each(_.range(hex_range.top, hex_range.bottom), function (row) {
+            var index = 0;
+            _.each(_.range(hex_range.left - 1, hex_range.right + 1), function (col) {
+                _.each(_.range(hex_range.top - 1, hex_range.bottom + 1), function (row) {
+
+                    //  var color = color_choices[(col + row) % color_choices.length];
+
                     var center = EASEL_MAP.util.draw_hex.placement(row, col, cell_radius, true);
+                    //  console.log('hex center: ', JSON.stringify(center));
                     var grey = heightmap.color(center.center_x / MAP_GREY_RATIO, center.center_y / MAP_GREY_RATIO);
-                    EASEL_MAP.util.draw_hex.draw(row, col, cell_radius, grey);
+                    if (cell_radius * scale > 10) {
+                        EASEL_MAP.util.draw_hex.draw(row, col, cell_radius, grey_from_255(grey), hexagons);
+                    } else {
+                        hexagons.graphics.f(grey_from_255(grey)).dc(center.center_x, center.center_y, cell_radius * 0.975).ef();
+                    }
+                    ++index;
                 });
             });
+
 
             var boundry_rect = new createjs.Shape();
             boundry_rect.graphics.s('red').ss(2).dr(tile.left(), tile.top(), tile.width(), tile.height());
@@ -80,7 +112,7 @@
 
             var text = new createjs.Text(tile.i + 'x' + tile.j, (20 / this.scale()) + 'pt Arial', 'red');
             text.x = tile.left() + 10 / this.scale();
-            text.y = tile.top() + 10/this.scale();
+            text.y = tile.top() + 10 / this.scale();
             tile.container().addChild(text);
         };
 
@@ -140,8 +172,10 @@
         });
 
         $('#hex_size').change(function (e) {
-            console.log('hex size', e, $(e.target).val());
-
+            hex_size = parseInt($(e.target).val());
+            console.log('hex size', e, hex_size);
+            map.refresh();
+            map.render(render_params, stage);
         });
 
     })

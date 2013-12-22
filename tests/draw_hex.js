@@ -1,6 +1,7 @@
 var tap = require('tap');
 var easel = require('./../build/easel-mapper');
 var util = require('util');
+var _ = require('underscore');
 
 function real_equal(test, a, b, range, msg) {
     var d = Math.abs(a - b);
@@ -71,7 +72,31 @@ tap.test('draw_hex', function (draw_hex_test) {
       //  console.log('extent: %s', util.inspect(extent));
 
         extent_test.end()
-    })
+    });
+
+    draw_hex_test.test('points', function(points_test){
+        var RADIUS = 10;
+        var ROW = -4;
+        var COL = 6;
+
+        var long_placement = easel.EASEL_MAP.util.draw_hex.placement(ROW, COL, RADIUS);
+        var points = easel.EASEL_MAP.util.draw_hex.points(ROW, COL, RADIUS);
+
+        console.log('placement: %s', util.inspect(long_placement));
+        console.log('points %s', util.inspect(points));
+
+        _.each(_.range(0, points.length, 2), function(x_index){
+            var x = points[x_index];
+            var y = points[x_index + 1];
+
+            points_test.ok(y >= long_placement.top, 'point y >= placement top');
+            points_test.ok(y <= long_placement.bottom, 'point y <= placement bottom');
+            points_test.ok(x >= long_placement.left, 'point x >= placement left');
+            points_test.ok(x <= long_placement.right, 'point x <= placement right');
+
+        })
+        points_test.end();
+    });
 
     draw_hex_test.end();
 
