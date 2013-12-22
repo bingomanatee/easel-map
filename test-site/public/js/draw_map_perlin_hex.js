@@ -47,12 +47,13 @@
         var INC = 10;
         shape_layer.add_tile_shapes = function (tile) {
          //   console.log('drawing tile ', tile.i, 'x', tile.j, 'at', tile.layer.scale());
+            var cell_radius = 100 *  tile.layer.scale();
 
             var t = new Date().getTime();
 
             var divs = 12;
 
-            var rect = new createjs.Shape();
+            var hexagons = new createjs.Shape();
             var back_fill = new createjs.Shape();
 
             if ((tile.i + tile.j) % 2) {
@@ -62,21 +63,14 @@
             }
             back_fill.graphics.r(tile.left(), tile.top(), this.tile_width, this.tile_height);
             tile.container().addChild(back_fill);
-            tile.container().addChild(rect);
+            tile.container().addChild(hexagons);
+            var hex_range = EASEL_MAP.util.draw_hex.hex_extent(tile.left(), tile.right(),tile.top(), tile.bottom(), cell_radius);
 
-            var v = tile.height() / divs;
-            var h = tile.width() / divs;
-
-            var shape_count = 0;
-            _.each(_.range(tile.left(), tile.right(), h), function (x) {
-                _.each(_.range(tile.top(), tile.bottom(), v), function (y) {
-                    ++shape_count;
-                    var center_x = x - h / 2;
-                    var center_y = y - v / 2;
-
-                    var grey = heightmap.color((center_x - map.left) / MAP_GREY_RATIO, (center_y - map.top) / MAP_GREY_RATIO);
-
-                    rect.graphics.f(EASEL_MAP.util.color(grey)).r(x, y, h, v);
+            _.each(_.range(hex_range.left, hex_range.right), function (col) {
+                _.each(_.range(hex_range.top, hex_range.bottom), function (row) {
+                    var center = EASEL_MAP.util.draw_hex.placement(row, col, cell_radius, true);
+                    var grey = heightmap.color(center.center_x / MAP_GREY_RATIO, center.center_y / MAP_GREY_RATIO);
+                    EASEL_MAP.util.draw_hex.draw(row, col, cell_radius, grey);
                 });
             });
 

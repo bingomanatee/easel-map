@@ -6,11 +6,12 @@ module.exports = function (grunt) {
 
         concat: {
             options: {
+                banner: "if (typeof module != 'undefined') {\nvar window = module.exports;\nvar _ = require('underscore');}\n(function(window){\n",
+                footer: "\n})(window)\n",
                 separator: ";\n"
             },
             dist: {
                 src: [
-                    'vendor/underscore.1.5.2.min.js',
                     'lib/index.js',
                     'lib/util/grid_extent.js',
                     'lib/map/index.js',
@@ -18,9 +19,9 @@ module.exports = function (grunt) {
                     'lib/perlin_canvas/index.js',
                     'lib/layer/Layer_Tile.js',
                     'lib/layer/index.js',
-                    'lib/hex/Hex_Cell.js',
-                    'lib/hex/render.js',
-                    'lib/hex/index.js',
+                    'lib/hex/draw_hex.js',
+                    //'lib/hex/render.js',
+                  //  'lib/hex/index.js',
                     'lib/grid/index.js'
                 ],
                 dest: 'build/easel-mapper.js'
