@@ -490,10 +490,11 @@ var _ = require('underscore');}
             var tiles = this.retile();
 
             _.each(tiles, function (tile) {
+                console.log('scale for ', tile.i, tile.j, 'is', tile.loaded_scale, 'against' , this.scale());
                 if (tile.loaded_scale != this.scale()) {
                     tile.load(this.scale());
                 } else {
-                //    console.log('not redrawing ', tile.i, tile.j);
+                   console.log('not redrawing ', tile.i, tile.j);
                 }
             }, this);
         },
@@ -618,12 +619,15 @@ var _ = require('underscore');}
             var top = tr.tl.j;
             var bottom = tr.br.j;
 
-            var old_tiles = this.tiles.filter(function (tile) {
+            function _in_range (tile) {
                 return tile.i >= left &&
                     tile.i <= right &&
                     tile.j >= top &&
                     tile.j <= bottom;
-            });
+            }
+            console.log('looking for old tiles in', this.tiles.length, 'old tiles');
+
+            var old_tiles = this.tiles.filter(_in_range);
 
             var self = this;
             _.each(_.range(left, right + 2), function (i) {
@@ -640,15 +644,9 @@ var _ = require('underscore');}
                 }, this);
             }, this)
 
-            var removed_tiles = _.difference(this.tiles, old_tiles);
-
-            _.each(removed_tiles, function(tile){
-                this.offset_layer().removeChild(tile.container());
-            }, this);
-
             // forgetting tiles that are out of the screen
-            this.tiles = old_tiles;
-            return old_tiles;
+            this.tiles = _.filter(this.tiles, _in_range);
+            return this.tiles;
         }
 
     };
@@ -660,11 +658,6 @@ var _ = require('underscore');}
     var SIN_30 = Math.sin(Math.PI / 6);
     var COS_60 = SIN_30;
     var SIN_60 = COS_30;
-
-    var COS_30_x_2 = COS_30 * 2;
-    var COS_30_x_3 = COS_30 * 3;
-    var COS_30_x_3_div_2 = COS_30 * 3 / 2;
-    var COS_30_div_2 = COS_30 / 2;
 
     var CACHED_HEXES = {};
 

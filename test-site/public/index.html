@@ -21,14 +21,18 @@
     <button id="zoom_in">Zoom In</button>
     <button id="zoom_out">Zoom Out</button>
    Hex size: <select id="hex_size">
-    <option value="100">100</option>
-    <option value="200">200</option>
-    <option value="300">300</option>
+    <option value="5">5</option>
+    <option value="10" selected>10</option>
+    <option value="20">20</option>
    </select>
     <div class="stat">Left: <b id="left_value"></b>, top: <b id="top_value"></b>, scale <b id="scale_value"></b></div>
 </div>
 
 <script src="/js/vendor/jquery-1.10.2.min.js" defer="defer">
+
+</script>
+
+<script src="/js/vendor/underscore.1.5.2.min.js" defer="defer">
 
 </script>
 
@@ -40,7 +44,7 @@
 
 </script>
 
-<script src="/js/draw_map.js" defer="defer">
+<script src="/js/draw_map_perlin_hex.js" defer="defer">
 </script>
 </body>
 </html>
