@@ -323,11 +323,10 @@ var _ = require('underscore');}
          * it calls the local add_tile_shapes to load custom content
          * then caches itself.
          *
-         * @param scale
          */
-        load: function (scale) {
+        load: function () {
             this.container().removeAllChildren();
-            if (!scale) scale = this.scale();
+         var scale = this.layer.scale();
 
             this.layer.add_tile_shapes(this);
             this.cache(scale);
@@ -338,6 +337,7 @@ var _ = require('underscore');}
 
         refresh: function(){
             this.container().uncache();
+            this.container().removeAllChildren();
         },
 
         move_around: function (x, y) {
@@ -475,12 +475,12 @@ var _ = require('underscore');}
         pre_render: function (stage, params) {
             this.set_stage(stage);
             if (params.hasOwnProperty('left')) {
-                this.offset_layer().x = params.left;
+                this.offset_layer().x = this.left(params.left);
             }
             if (params.hasOwnProperty('top')) {
-                this.offset_layer().y = params.top;
+                this.offset_layer().y = this.top(params.top);
             }
-            if (params.hasOwnProperty('scale')){
+            if (params.hasOwnProperty('scale')) {
                 var gc = this.scale_layer();
                 gc.scaleX = gc.scaleY = this.scale(params.scale);
             }
@@ -490,11 +490,11 @@ var _ = require('underscore');}
             var tiles = this.retile();
 
             _.each(tiles, function (tile) {
-                console.log('scale for ', tile.i, tile.j, 'is', tile.loaded_scale, 'against' , this.scale());
+                console.log('scale for ', tile.i, tile.j, 'is', tile.loaded_scale, 'against', this.scale());
                 if (tile.loaded_scale != this.scale()) {
-                    tile.load(this.scale());
+                    tile.load();
                 } else {
-                   console.log('not redrawing ', tile.i, tile.j);
+                    console.log('not redrawing ', tile.i, tile.j);
                 }
             }, this);
         },
@@ -528,6 +528,20 @@ var _ = require('underscore');}
                 this._scale = s;
             }
             return this._scale;
+        },
+
+        left: function (s) {
+            if (arguments.length > 0) {
+                this._left = s;
+            }
+            return this._left;
+        },
+
+        top: function (s) {
+            if (arguments.length > 0) {
+                this._top = s;
+            }
+            return this._top;
         },
 
         render_sublayers: function (render_params) {
@@ -576,19 +590,18 @@ var _ = require('underscore');}
             var tl = this.tile(0, 0);
             var ltl = this.local_tl();
 
-         //   ltl.x = Math.max(this.map.left, ltl.x);
-        //    ltl.y = Math.max(this.map.top, ltl.y);
+            //   ltl.x = Math.max(this.map.left, ltl.x);
+            //    ltl.y = Math.max(this.map.top, ltl.y);
 
             tl.move_around(ltl.x, ltl.y);
 
             var br = this.tile(tl.i, tl.j);
             var lbr = this.local_br();
 
-          //  lbr.x = Math.min(this.map.right,lbr.x);
-         //   lbr.y = Math.min(this.map.bottom, lbr.y);
+            //  lbr.x = Math.min(this.map.right,lbr.x);
+            //   lbr.y = Math.min(this.map.bottom, lbr.y);
 
             br.move_around(lbr.x, lbr.y);
-
 
 
             return {tl: _.pick(tl, 'i', 'j'), br: _.pick(br, 'i', 'j')};
@@ -602,10 +615,10 @@ var _ = require('underscore');}
             throw new Error('must be overridden by layer definition')
         },
 
-        refresh: function(){
-            _.each(this.tiles, function(tile){
+        refresh: function () {
+            _.each(this.tiles, function (tile) {
                 tile.refresh();
-                tile.load(this.scale());
+                tile.load();
             }, this);
         },
 
@@ -619,17 +632,25 @@ var _ = require('underscore');}
             var top = tr.tl.j;
             var bottom = tr.br.j;
 
-            function _in_range (tile) {
+            function _in_range(tile) {
                 return tile.i >= left &&
                     tile.i <= right &&
                     tile.j >= top &&
                     tile.j <= bottom;
             }
+
             console.log('looking for old tiles in', this.tiles.length, 'old tiles');
 
             var old_tiles = this.tiles.filter(_in_range);
+            var removed_tiles = _.reject(this.tiles, _in_range);
 
-            var self = this;
+            _.each(removed_tiles, function (tile) {
+                tile.container().removeAllChildren();
+                if (tile.container().parent) {
+                    tile.container().parent.removeChild(tile.container());
+                }
+            }, this);
+
             _.each(_.range(left, right + 2), function (i) {
                 _.each(_.range(top, bottom + 2), function (j) {
                     var old_tile = _.find(old_tiles, function (tile) {
@@ -642,10 +663,11 @@ var _ = require('underscore');}
                         old_tiles.push(tile);
                     }
                 }, this);
-            }, this)
+            }, this);
 
             // forgetting tiles that are out of the screen
-            this.tiles = _.filter(this.tiles, _in_range);
+
+            this.tiles = old_tiles;
             return this.tiles;
         }
 

@@ -8,11 +8,27 @@
 
         var hex_size = 10;
 
-        var _grey_color = _.template('hsl(0, 0%, <%= grey %>%)');
+        var _land_color = _.template('hsl(0, 20%, <%= grey * 100 %>%)');
+        var _sea_color = _.template('hsl(180, 50%, <%= grey * 100 %>%)');
+
+        var SEA_LEVEL = 120;
+        var MIN_LAND_GREY = 0.2;
+        var MAX_SEA_BLUE = 0.7;
 
         function grey_from_255(grey) {
-            grey *= 100 / 255;
-            return _grey_color({grey: grey});
+            var is_sea = (grey < SEA_LEVEL);
+
+            if (is_sea) {
+                grey = grey/SEA_LEVEL;
+                grey *= grey * MAX_SEA_BLUE;
+                return _sea_color({grey: grey});
+            } else {
+                grey = (grey - SEA_LEVEL)/(255 - SEA_LEVEL);
+                grey *= grey;
+                grey *= (1 - MIN_LAND_GREY);
+                grey += MIN_LAND_GREY;
+                return _land_color({grey: grey});
+            }
         }
 
         var caches_hex_shapes = [];
