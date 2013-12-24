@@ -5,7 +5,92 @@
     <style>
         canvas {
             border: 1px solid black;
-            background-color: rgb(51,51,51);
+            background-color: rgb(51, 51, 51);
+        }
+
+        .paint-range {
+            width: 300px;
+            height: 150px;
+            position: relative;
+        }
+
+        .color-pip {
+            width:20px;
+            height: 10px;
+            margin: 0;
+            margin-right: 5px;
+            border: 1px solid black;
+            display: inline-block;
+        }
+
+        .color-pip.color-0 {
+            background-color: red;
+        }
+
+        .color-pip.color-1 {
+            background-color: orange;
+        }
+
+        .color-pip.color-2 {
+            background-color: yellow;
+        }
+
+        .color-pip.color-3 {
+            background-color: green;
+        }
+
+        .color-pip.color-4 {
+            background-color: blue;
+        }
+
+        .color-pip.color-5 {
+            background-color: purple;
+        }
+
+        .color-pip.color-6 {
+            background-color: blue;
+        }
+
+        .color-pip.color-7 {
+            background-color: green;
+        }
+
+        .color-pip.color-8 {
+            background-color: yellow;
+        }
+
+        .color-pip.color-9 {
+            background-color: grey;
+        }
+
+        .swatches {
+            white-space: nowrap;
+        }
+
+        .paint-range .range-slider {
+            width: 300px;
+        }
+
+        .heightmap-show {
+            position: relative;
+        }
+        .heightmap-show .cursor {
+            width: 10px; height: 10px; background-color: rgba(255,0,0,0.5);
+            position: absolute;
+        }
+        .paint-range .brush_size {
+            position: absolute;
+            left: 325px;
+            top: 0px;
+            width: 180px;
+            white-space: nowrap;
+        }
+        .paint-range .opacity {
+            position: absolute;
+            left: 500px;
+            top: 0px;
+            width: 180px;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -20,13 +105,68 @@
     <button id="down">Down</button>
     <button id="zoom_in">Zoom In</button>
     <button id="zoom_out">Zoom Out</button>
-   Hex size: <select id="hex_size">
+    Hex size: <select id="hex_size">
     <option value="10" selected>10</option>
     <option value="15">15</option>
     <option value="20">20</option>
     <option value="25">25</option>
-   </select>
+</select>
+
     <div class="stat">Left: <b id="left_value"></b>, top: <b id="top_value"></b>, scale <b id="scale_value"></b></div>
+    <div class="paint-range">
+        <label>height</label>
+
+        <div class="swatches">
+            <div class="color-pip color-0">
+            </div>
+            <div class="color-pip color-1">
+            </div>
+            <div class="color-pip color-2">
+            </div>
+            <div class="color-pip color-3">
+            </div>
+            <div class="color-pip color-4">
+            </div>
+            <div class="color-pip color-5">
+            </div>
+            <div class="color-pip color-6">
+            </div>
+            <div class="color-pip color-7">
+            </div>
+            <div class="color-pip color-8">
+            </div>
+            <div class="color-pip color-9">
+            </div>
+        </div>
+
+        <input class="range-slider" id="height-range" type="range" min="0" max="255" step="1" name="height"/>
+
+        <div class="brush_size">
+            <label>Brush Size</label>
+            <select id="brush-size">
+                <option value="0.25">small</option>
+                <option value="0.5" selected>med</option>
+                <option value="1">large</option>
+                <option value="2">huge</option>
+                <option value="4">massive</option>
+            </select>
+        </div>
+        <div class="opacity">
+            <label>opacity</label>
+            <select id="opacity">
+                <option value="0.001">thin</option>
+                <option value="0.005" selected>med</option>
+                <option value="0.01">thick</option>
+                <option value="0.05">very thick</option>
+                <option value="0.1">almost solid</option>
+                <option value="0.5"> solid</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="heightmap-show">
+    <div class="cursor"></div>
 </div>
 
 <script src="/js/vendor/jquery-1.10.2.min.js" defer="defer">

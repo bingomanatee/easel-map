@@ -84,7 +84,7 @@ var _ = require('underscore');}
         add_layer: function (layer, params) {
             if (_.isString(layer)) {
                 if (this.layers[layer]) {
-                    throw new Error('already have a layer ' + name);
+                    throw new Error('already have a layer ' + layer);
                 }
                 layer = this.layers[layer] = new EASEL_MAP.Layer(layer, this, params || {});
             } else if (this.layers[layer.name]) {
@@ -141,21 +141,6 @@ var _ = require('underscore');}
         }, this);
 
         stage.update();
-
-        var self = this;
-
-        $(canvas).on('mousemove', function(e){
-            console.log('mousemove');
-            self.event('mousemove', e);
-        });
-        $(canvas).on('mousedown', function(e){
-            console.log('mousedown');
-            self.event('mousedown', e);
-        });
-        $(canvas).on('mouseup', function(e){
-            console.log('mouseup');
-            self.event('mouseup', e);
-        });
         return stage;
     }
 
@@ -463,11 +448,11 @@ var _ = require('underscore');}
         this.name = name;
         this.map = map;
         this.tile_width = this.tile_height = DEFAULT_TILE_SIZE;
+        this.events = {};
+        this.tiles = [];
         _.extend(this, params);
         this.order = map.layers.length;
         this.name = name;
-        this.events = {};
-        this.tiles = [];
     };
 
     window.EASEL_MAP.Layer.prototype = {
@@ -519,6 +504,9 @@ var _ = require('underscore');}
             if (!this._offset_layer) {
                 this._offset_layer = new createjs.Container();
                 this.scale_layer().addChild(this._offset_layer);
+                _.each(this.events, function(handler, name){
+                    this._offset_layer.on(name, handler);
+                }, this);
             }
             return this._offset_layer;
         },
