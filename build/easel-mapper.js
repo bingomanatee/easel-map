@@ -490,17 +490,17 @@ var _ = require('underscore');}
             var tiles = this.retile();
 
             _.each(tiles, function (tile) {
-                console.log('scale for ', tile.i, tile.j, 'is', tile.loaded_scale, 'against', this.scale());
+              //  console.log('scale for ', tile.i, tile.j, 'is', tile.loaded_scale, 'against', this.scale());
                 if (tile.loaded_scale != this.scale()) {
                     tile.load();
                 } else {
-                    console.log('not redrawing ', tile.i, tile.j);
+               //     console.log('not redrawing ', tile.i, tile.j);
                 }
             }, this);
         },
 
         cache: function (stage) {
-            console.log('caching layer', this);
+          //  console.log('caching layer', this);
             if (this.container.x || this.container.y || this.container.scaleX != 1 || this.container.scaleY != 1) {
                 throw new Error('cannot cache offset/scaled containers');
             }
@@ -625,7 +625,7 @@ var _ = require('underscore');}
         retile: function () {
             // return;
             var tr = this.tile_range();
-            console.log('tile range:', JSON.stringify(tr));
+       //    console.log('tile range:', JSON.stringify(tr));
 
             var left = tr.tl.i;
             var right = tr.br.i;
@@ -651,8 +651,8 @@ var _ = require('underscore');}
                 }
             }, this);
 
-            _.each(_.range(left, right + 2), function (i) {
-                _.each(_.range(top, bottom + 2), function (j) {
+            _.each(_.range(left, right + 1), function (i) {
+                _.each(_.range(top, bottom + 1), function (j) {
                     var old_tile = _.find(old_tiles, function (tile) {
                         return tile.i == i && tile.j == j;
                     });
@@ -717,13 +717,13 @@ var _ = require('underscore');}
 
         var xs = [
             center.center_x + -radius,
-            center.center_x  -radius * COS_60 ,
+            center.center_x - radius * COS_60 ,
             center.center_x + radius * COS_60 ,
             center.center_x + radius
         ];
 
         var ys = [
-            center.center_y -radius * SIN_60 ,
+            center.center_y - radius * SIN_60 ,
             center.center_y,
             center.center_y + radius * SIN_60 ];
 
@@ -837,6 +837,29 @@ var _ = require('underscore');}
         shape.graphics.lt(points[0], points[1]);
         shape.graphics.ef();
         return shape;
+    };
+
+    window.EASEL_MAP.util.make_hex_cache = function (color, radius) {
+        var extent = window.EASEL_MAP.util.draw_hex.placement(0, 0, radius);
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(extent.width + 2);
+        canvas.height = Math.ceil(extent.height + 2);
+
+        var stage = new createjs.Stage(canvas);
+
+        var hex_shape = window.EASEL_MAP.util.draw_hex.draw(0, 0, radius, color);
+        hex_shape.x = canvas.width/2;
+        hex_shape.y = canvas.height/2;
+
+        stage.addChild(hex_shape);
+        stage.update();
+
+        return {
+            radius: radius,
+            color: color,
+            canvas: canvas,
+            extent: extent
+        };
     };
 
 })(window);;
