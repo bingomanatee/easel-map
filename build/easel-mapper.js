@@ -64,6 +64,15 @@ var _ = require('underscore');}
     };
 
     window.EASEL_MAP.Map.prototype = {
+
+        height: function () {
+            return this.bottom - this.top;
+        },
+
+        width: function () {
+            return this.right - this.left;
+        },
+
         init: function () {
             this.paths = [];
             this.regions = [];

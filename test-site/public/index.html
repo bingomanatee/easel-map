@@ -15,7 +15,7 @@
         }
 
         .color-pip {
-            width:20px;
+            width: 20px;
             height: 10px;
             margin: 0;
             margin-right: 5px;
@@ -74,10 +74,14 @@
         .heightmap-show {
             position: relative;
         }
+
         .heightmap-show .cursor {
-            width: 10px; height: 10px; background-color: rgba(255,0,0,0.5);
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255, 0, 0, 0.5);
             position: absolute;
         }
+
         .paint-range .brush_size {
             position: absolute;
             left: 325px;
@@ -85,6 +89,7 @@
             width: 180px;
             white-space: nowrap;
         }
+
         .paint-range .opacity {
             position: absolute;
             left: 500px;
@@ -105,6 +110,7 @@
     <button id="down">Down</button>
     <button id="zoom_in">Zoom In</button>
     <button id="zoom_out">Zoom Out</button>
+    <button id="wrap">Wrap Map 180&deg;</button>
     Hex size: <select id="hex_size">
     <option value="10" selected>10</option>
     <option value="15">15</option>
@@ -155,7 +161,7 @@
             <label>opacity</label>
             <select id="opacity">
                 <option value="0.01">wafer thin</option>
-                <option value="0.025" >very thin</option>
+                <option value="0.025">very thin</option>
                 <option value="0.05">thin</option>
                 <option value="0.125" selected>med</option>
                 <option value="0.25">thick</option>
@@ -179,6 +185,9 @@
 </script>
 
 <script src="/js/easel-mapper.js" defer="defer">
+</script>
+
+<script src="/js/terrain_color.js" defer="defer">
 </script>
 
 <script src="/js/perlin.js" defer="defer">
