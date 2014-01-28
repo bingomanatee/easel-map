@@ -123,7 +123,7 @@ var _ = require('underscore');}
 })(window);;
 (function (window) {
 
-    window.EASEL_MAP.Map.prototype.render = function (params, stage, canvas ) {
+    window.EASEL_MAP.Map.prototype.render = function (params, stage, canvas) {
 
         if (!stage) {
             if (!canvas) throw new Error("must provide stage or canvas to render");
@@ -131,24 +131,31 @@ var _ = require('underscore');}
         }
 
         _.each(this.get_layers(), function (layer) {
-            if (layer.pre_render){
+            if (layer.pre_render) {
                 layer.pre_render(stage, params);
-            };
+            }
+            ;
         }, this);
 
-        _.each(this.get_layers(), function(layer){
+        _.each(this.get_layers(), function (layer) {
             layer.render(stage, params);
-            if (layer.post_render){
+            if (layer.post_render) {
                 layer.post_render(stage, params);
             }
         }, this);
 
-        _.each(this.get_layers(), function(layer){
-            if (layer.post_render){
+        _.each(this.get_layers(), function (layer) {
+            if (layer.post_render) {
                 layer.post_render(stage, params);
             }
         }, this);
 
+        _.each(this.get_layers(), function (layer) {
+            if (!layer.events_updated) {
+                layer.update_events();
+                layer.events_updated = true;
+            }
+        }, this);
         stage.update();
         return stage;
     }
@@ -513,11 +520,16 @@ var _ = require('underscore');}
             if (!this._offset_layer) {
                 this._offset_layer = new createjs.Container();
                 this.scale_layer().addChild(this._offset_layer);
-                _.each(this.events, function(handler, name){
-                    this._offset_layer.on(name, handler);
-                }, this);
+
             }
             return this._offset_layer;
+        },
+
+        update_events: function(){
+            _.each(this.events, function(handler, name){
+                this.offset_layer().removeAllEventListeners(name);
+                this.offset_layer().on(name, handler);
+            }, this);
         },
 
         scale: function (s) {

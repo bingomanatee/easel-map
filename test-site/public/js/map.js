@@ -90,7 +90,7 @@
                         tile.container().addChild(hex_bm);
                     });
                 });
-                /*
+
                  var boundry_rect = new createjs.Shape();
                  boundry_rect.graphics.s('red').ss(2).dr(tile.left(), tile.top(), tile.width(), tile.height());
                  tile.container().addChild(boundry_rect);
@@ -98,7 +98,7 @@
                  var text = new createjs.Text(tile.i + 'x' + tile.j, (20 / this.scale()) + 'pt Arial', 'red');
                  text.x = tile.left() + 10 / this.scale();
                  text.y = tile.top() + 10 / this.scale();
-                 tile.container().addChild(text);*/
+                 tile.container().addChild(text);
             },
             events: {
                 mousemove: function (event) {
