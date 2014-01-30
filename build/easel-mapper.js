@@ -131,10 +131,16 @@ var _ = require('underscore');}
         }
 
         _.each(this.get_layers(), function (layer) {
+            layer.set_coordinates(stage, params);
+        }, this);
+
+        _.each(this.get_layers(), function (layer) {
             if (layer.pre_render) {
+                console.log('rendering prerender for ', layer.name);
                 layer.pre_render(stage, params);
+            } else {
+                console.log('no prerender for ', layer.name);
             }
-            ;
         }, this);
 
         _.each(this.get_layers(), function (layer) {
@@ -142,20 +148,56 @@ var _ = require('underscore');}
             if (layer.post_render) {
                 layer.post_render(stage, params);
             }
-        }, this);
 
-        _.each(this.get_layers(), function (layer) {
-            if (layer.post_render) {
-                layer.post_render(stage, params);
-            }
-        }, this);
-
-        _.each(this.get_layers(), function (layer) {
             if (!layer.events_updated) {
                 layer.update_events();
                 layer.events_updated = true;
             }
         }, this);
+        stage.update();
+        return stage;
+    }
+
+})(window);;
+(function (window) {
+
+    window.EASEL_MAP.Map.prototype.render_layer = function (layer, params, stage, canvas) {
+
+        if (_.isString(layer)) {
+            layer = this.layers[layer];
+        }
+
+        if (!this.layers[layer]) {
+            throw new Error('cannot get layer ' + layer);
+        }
+
+        if (!stage) {
+            if (!canvas) throw new Error("must provide stage or canvas to render");
+            stage = new createjs.Stage(canvas);
+        }
+
+        if (params) {
+            layer.set_coordinates(stage, params);
+        }
+
+        if (layer.pre_render) {
+            console.log('rendering prerender for ', layer.name);
+            layer.pre_render(stage, params);
+        } else {
+            console.log('no prerender for ', layer.name);
+        }
+
+        layer.render(stage, params);
+
+        if (layer.post_render) {
+            layer.post_render(stage, params);
+        }
+
+        if (!layer.events_updated) {
+            layer.update_events();
+            layer.events_updated = true;
+        }
+
         stage.update();
         return stage;
     }
@@ -473,7 +515,7 @@ var _ = require('underscore');}
 
     window.EASEL_MAP.Layer.prototype = {
 
-        pre_render: function (stage, params) {
+        set_coordinates: function (stage, params) {
             this.set_stage(stage);
             if (params.hasOwnProperty('left')) {
                 this.offset_layer().x = this.left(params.left);

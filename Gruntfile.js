@@ -16,6 +16,7 @@ module.exports = function (grunt) {
                     'lib/util/grid_extent.js',
                     'lib/map/index.js',
                     'lib/map/render.js',
+                    'lib/map/render_layer.js',
                     'lib/map/refresh.js',
                     'lib/perlin_canvas/index.js',
                     'lib/layer/Layer_Tile.js',
@@ -37,7 +38,7 @@ module.exports = function (grunt) {
             build: {
                 files: [
                     {    src: 'build/easel-mapper.js',
-                        dest: 'index.js'},
+                        dest: 'easel-mapper.js'},
                     {
                         src: 'build/easel-mapper.js',
                         dest: 'test-site/public/js/easel-mapper.js'
