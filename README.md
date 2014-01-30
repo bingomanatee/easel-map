@@ -24,10 +24,6 @@ note you will also have to change *the order of the containers* manually if that
 Each layer has a colletion of render tiles; they are dynamically added and removed as the map is navigated.
 The map is repositioned by passing a new set of coordinate parameters to map.render; `top`, `left`, and `scale`.
 
-note each call to render accepts both a parameter set and a stage; this allows you to render to multiple canvases
-with their own positioning if desired from the same map class. This won't necessarily be as efficient as the cached
-tiles won't necessarily be reusable across multiple maps.
-
 ``` javascript
 
         $('#down').click(function () {
@@ -58,6 +54,9 @@ Rendering executes the following steps.
 
 ### Rendering shapes into a tile
 
+Each layer has several tiles in which content is rendered. This is analogous to Google Map's
+tiled images. Tiles are cached, added, and deleted as necessary to draw the current view range.
+
 Render resets the layer's tiles to those that are currently visible, culling the others.
 It then calls the layer's `add_tile_shapes(tile)` method for each new tile, allowing you
 to draw shapes into the tile's `container()`. *This method must be customized* for each layer
@@ -73,3 +72,28 @@ the map drawing routine assumes that the shapes do not change in a given layer.
 These commands will clear the cache of the tile and call `add_tile_shapes(tile)` on it.
 you will have to call `stage.update()` manually yourself after a refresh.
 
+## Some guidelines for layer creation and management
+
+If you want to create content that is largely immobile - backgrounds, etc. -- extend the
+render_tile(tile) method of a layer and attach shapes to the container() method of the tile.
+
+Note that shapes may need to be created in multiple tiles, so you must spawn unique shapes
+for each tile.
+
+Tiles are great for caching draw content that is not moving; however for interactive layers,
+where sprites are created/move/animate, you will want to create your own containers.
+
+The "render" method of the layer is where tiles are created. If you DO NOT want tiles
+in a layer, override that method with your own render method.
+
+You can create your own container layers and attach them to offset_layer():Container.
+You can do this in `render` to supplant tiles, or in `post_render`.
+
+To create events that react on click/move at the tile level, attach events to the layer's
+events property.
+
+to animate the changing position/scale of a map, call `map.render(render_params, stage);
+render_params has top, left, and scale properties. This may or may not create new tiles as needed.
+
+To force a layer's tiles to be redrawn, call `layer.refresh()`; or call `map.refresh()` to refresh all tiles.
+follow any refresh call by a map.render();
