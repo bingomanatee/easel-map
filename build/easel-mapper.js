@@ -167,7 +167,7 @@ var _ = require('underscore');}
             layer = this.layers[layer];
         }
 
-        if (!this.layers[layer]) {
+        if (!layer) {
             throw new Error('cannot get layer ' + layer);
         }
 
