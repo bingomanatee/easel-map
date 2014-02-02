@@ -106,6 +106,12 @@ var _ = require('underscore');}
 
         },
 
+        set_coordinates: function(params, stage){
+            _.each(this.get_layers(), function (layer) {
+                layer.set_coordinates(stage, params);
+            }, this);
+        },
+
         event: function (name, e) {
             var bubbles = this.get_layers(true);
 
@@ -136,10 +142,8 @@ var _ = require('underscore');}
 
         _.each(this.get_layers(), function (layer) {
             if (layer.pre_render) {
-                console.log('rendering prerender for ', layer.name);
                 layer.pre_render(stage, params);
             } else {
-                console.log('no prerender for ', layer.name);
             }
         }, this);
 
@@ -516,7 +520,9 @@ var _ = require('underscore');}
     window.EASEL_MAP.Layer.prototype = {
 
         set_coordinates: function (stage, params) {
-            this.set_stage(stage);
+            if (stage) {
+                this.set_stage(stage);
+            }
             if (params.hasOwnProperty('left')) {
                 this.offset_layer().x = this.left(params.left);
             }
@@ -720,6 +726,24 @@ var _ = require('underscore');}
 
             this.tiles = old_tiles;
             return this.tiles;
+        },
+
+        bounds: function(){
+
+            var top_left = this.offset_layer().globalToLocal(0, 0);
+
+            var bottom_right = this.offset_layer().globalToLocal(this.stage.canvas.width, this.stage.canvas.height);
+
+            var out = {
+                top: top_left.y,
+                left: top_left.x,
+                bottom: bottom_right.y,
+                right: bottom_right.x
+            };
+
+            out.width = out.right - out.left;
+            out.height = out.bottom - out.top;
+            return out;
         }
 
     };
