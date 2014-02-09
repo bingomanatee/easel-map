@@ -80,6 +80,7 @@
                 var hex_range = EASEL_MAP.util.draw_hex.hex_extent(tile.left(), tile.right(), tile.top(), tile.bottom(), cell_radius);
                 _.each(_.range(hex_range.left - 1, hex_range.right + 1), function (col) {
                     _.each(_.range(hex_range.top - 1, hex_range.bottom + 1), function (row) {
+
                         var center = EASEL_MAP.util.draw_hex.placement(row, col, cell_radius);
                         var shade = heightmap.color((center.center_x + map.width() / 2) / MAP_GREY_RATIO, (center.center_y + map.height() / 2) / MAP_GREY_RATIO);
                         var cached_hex = _get_cached_hex(window.terrain_color(shade), cell_radius);
@@ -133,6 +134,7 @@
                 pressup: function () {
                     map.refresh();
                     map.render(render_params, stage);
+                    heightmap.cache_data();
                     $('.cursor').hide();
                 }
             }
