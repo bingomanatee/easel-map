@@ -5,5 +5,23 @@
     </script>
 </head>
 <body>
+
+<script language="javascript">
+
+    var stage;
+
+    (function(){
+        var c = EASEL_MAP.util.init_canvas(10, 10); // document.getElementById('tiny-canvas');
+
+        document.body.appendChild(c);
+
+        stage = new createjs.Stage(c);
+
+        var sprite = new createjs.Shape();
+        sprite.graphics.f('black').dr(0,0,5,5).ef();
+        stage.addChild(sprite);
+        stage.update();
+    })();
+</script>
 </body>
 </html>

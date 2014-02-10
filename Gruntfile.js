@@ -85,10 +85,9 @@ module.exports = function (grunt) {
             concat: {
                 all: {
                     files: {
-                        'test_site/public/js/canvas.browser.js': ['build/init_canvas.js', 'build/create.js'],
                         'easel-map.js': ['build/index.umd.js'],
-                        'easel-map.browser.js': [ 'build/underscore.js', 'build/Stats.js', 'build/index.umd.js'],
-                        'test-site/public/js/easel-map.browser.js': [  'build/underscore.js', 'build/Stats.js', 'build/index.umd.js']
+                        'easel-map.browser.js': [ 'build/underscore.js', 'build/create.js', 'build/Stats.js', 'build/index.umd.js'],
+                        'test-site/public/js/easel-map.browser.js': [  'build/underscore.js', 'build/create.js', 'build/Stats.js', 'build/index.umd.js']
                     }
                 },
                 easelmap: {

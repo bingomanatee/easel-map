@@ -8,8 +8,6 @@ console.log('my_path: %s', my_path);
 var easel_map = require(my_path);
 var util = require('util');
 
-console.log('em: %s', util.inspect(easel_map));
-
 tap.test('testing EASEL_MAP - node', {skip: 0}, function (test) {
     test.equal(easel_map.util.color(100, 200, 255), 'rgb(100, 200, 255)', 'EASEL_MAP.util.color(100,200,255)');
     test.equal(easel_map.util.average(1, 2, 3), 2, 'EASEL_MAP.util.average(1,2,3)');
@@ -26,7 +24,7 @@ tap.test('testing EASEL_MAP - node', {skip: 0}, function (test) {
 });
 
 tap.test('testing UMD', {skip: 0}, function (test) {
-    app(function () {
+    app(function (server) {
 
         phantom.create(function (err, ph) {
             if (err) throw err;
@@ -37,31 +35,41 @@ tap.test('testing UMD', {skip: 0}, function (test) {
                     console.log('status: ', status);
 
                     page.evaluate(function () {
-                        return  EASEL_MAP.util.color(100, 200, 255);
-                    }, function (err, result) {
-                        if (err) throw err;
-                        test.equal(result, 'rgb(100, 200, 255)', 'EASEL_MAP.util.color(100, 200, 255)');
+                            var ctx = stage.canvas.getContext('2d');
+                            var i = ctx.getImageData(0, 0, 10, 10);
+                            return _.toArray(i.data);
+                        },
+                        function (err, result) {
+                            test.deepEqual(result,require('./canvas_data.json'), 'canvas image data');
 
-                        page.evaluate(function () {
-                            return EASEL_MAP.util.average(1, 2, 3);
-                        }, function (err, result) {
-                            test.equal(result, 2, 'EASEL_MAP.util.average(1,2,3)');
+                            page.evaluate(function () {
+                                return  EASEL_MAP.util.color(100, 200, 255);
+                            }, function (err, result) {
+                                if (err) throw err;
+                                test.equal(result, 'rgb(100, 200, 255)', 'EASEL_MAP.util.color(100, 200, 255)');
 
-                            page.evaluate(function(){
-                                var map = new EASEL_MAP.Map({left: -100,
-                                    right: 100,
-                                    top: -200,
-                                    bottom: 200
+                                page.evaluate(function () {
+                                    return EASEL_MAP.util.average(1, 2, 3);
+                                }, function (err, result) {
+                                    test.equal(result, 2, 'EASEL_MAP.util.average(1,2,3)');
+
+                                    page.evaluate(function () {
+                                        var map = new EASEL_MAP.Map({left: -100,
+                                            right: 100,
+                                            top: -200,
+                                            bottom: 200
+                                        });
+                                        return [map.width(), map.height()];
+                                    }, function (err, data) {
+                                        test.equal(data[0], 200, 'Map.width()');
+                                        test.equal(data[1], 400, 'Map.height()');
+                                        ph.exit();
+                                        server.close();
+                                        test.end();
+                                    })
                                 });
-                                return [map.width(), map.height()];
-                            }, function(err, data){
-                                test.equal(data[0], 200, 'Map.width()');
-                                test.equal(data[1], 400, 'Map.height()');
-                                ph.exit();
-                                test.end();
-                            })
+                            });
                         });
-                    });
                 });
             });
         });

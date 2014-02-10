@@ -6,7 +6,7 @@ module.exports = function (done) {
 //
     var file = new st.Server(__dirname + '/public');
 
-    require('http').createServer(function (request, response) {
+     var server = require('http').createServer(function (request, response) {
         console.log('started server...');
         request.addListener('end',function () {
             //
@@ -17,5 +17,11 @@ module.exports = function (done) {
             file.serve(request, response);
         }).resume();
     }).listen(8080);
-    done();
+    done(server);
 };
+
+if (process.argv[2] == 'run'){
+    module.exports(function(){
+       console.log('running');
+    })
+}
