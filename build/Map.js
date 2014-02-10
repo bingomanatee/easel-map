@@ -1,3 +1,18 @@
+
+(function(root, factory) {
+    if(typeof exports === 'object') {
+        module.exports = factory(require('underscore'), require, exports, module);
+    }
+    else if(typeof define === 'function' && define.amd) {
+        define(['_', 'require', 'exports', 'module'], factory);
+    }
+    else {
+        var req = function(id) {return root[id];},
+            exp = root,
+            mod = {exports: exp};
+        root.Map = factory(root._, req, exp, mod);
+    }
+}(this, function(_, require, exports, module) {
 var _defaults = {
     top: -3250,
     bottom: 3250,
@@ -153,3 +168,5 @@ Map.prototype = {
     }
 
 };
+    return Map;
+}));

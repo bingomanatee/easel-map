@@ -1,59 +1,64 @@
 module.exports = function (grunt) {
-
-    // Project configuration.
+    grunt.loadNpmTasks('grunt-umd');
     grunt.initConfig({
-        pkg: grunt.file.readJSON('package.json'),
+            pkg: grunt.file.readJSON('package.json'),
+            umd: {
+                main: {
+                    template: 'unit',
+                    src: 'lib/index.js',
+                    dest: 'lib/index.umd.js',
+                    globalAlias: 'EASEL_MAP',
+                    deps: {
+                        'default': ['_', 'Canvas', 'Map', 'Stats'],
+                        global: ['_', 'Canvas', 'Map', 'Stats'],
+                        cjs: ['underscore', 'canvas', './Map', './Stats']
+                    },
+                    objectToExport: 'EASEL_MAP'
+                },
 
-        concat: {
-            options: {
-                banner: "if (typeof module != 'undefined') {\nvar window = module.exports;\nvar _ = require('underscore');}\n(function(window){\n",
-                footer: "\n})(window)\n",
-                separator: ";\n"
+                map: {
+                    template: 'unit',
+                    src: 'lib/map/index.js',
+                    dest: 'build/Map.js',
+                    deps: {
+                        'default': ['_' ],
+                        cjs: ['underscore']
+                    },
+                    objectToExport: 'Map',
+                    globalAlias: 'Map'
+                },
+
+                stats: {
+                    template: 'unit',
+                    src: 'lib/vendor/Stats.js',
+                    dest: 'build/Stats.js',
+                    objectToExport: 'Stats',
+                    globalAlias: 'Stats'
+                },
+                underscore: {
+                    template: __dirname + '/lib/umd.underscore.hbs',
+                    src: 'lib/vendor/underscore.1.5.2.min.js',
+                    dest: 'build/underscore.js'
+                }
             },
-            dist: {
-                src: [
-                    'lib/index.js',
-                    'lib/util/grid_extent.js',
-                    'lib/map/index.js',
-                    'lib/map/render.js',
-                    'lib/map/render_layer.js',
-                    'lib/map/refresh.js',
-                    'lib/perlin_canvas/index.js',
-                    'lib/layer/Layer_Tile.js',
-                    'lib/layer/index.js',
-                    'lib/hex/draw_hex.js',
-                    //'lib/hex/render.js',
-                  //  'lib/hex/index.js',
-                    'lib/grid/index.js'
-                ],
-                dest: 'build/easel-mapper.js'
-            }
-        },
-        uglify: {
-            options: {
-                mangle: false,
-                compress: false,
-                banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
-            },
-            build: {
-                files: [
-                    {    src: 'build/easel-mapper.js',
-                        dest: 'easel-mapper.js'},
-                    {
-                        src: 'build/easel-mapper.js',
-                        dest: 'test-site/public/js/easel-mapper.js'
+            concat: {
+                all: {
+                    files: {
+                        'build/easel-map.js': ['lib/index.umd.js'],
+                        'build/easel-map.browser.js':
+                            [ 'build/underscore.js','build/Map.js', 'build/Stats.js',  'lib/index.umd.js'],
+                        'test_modules/public/easel-map.browser.js':
+                            [  'build/underscore.js', 'build/Map.js', 'build/Stats.js','lib/index.umd.js']
                     }
-                ]
-
+                }
             }
         }
-    });
+    );
 
-    // Load the plugin that provides the "uglify" task.
+    grunt.loadNpmTasks('grunt-umd');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-uglify');
 
     // Default task(s).
-    grunt.registerTask('default', ['concat', 'uglify']);
-
+    grunt.registerTask('default', ['umd:underscore', 'umd:map', 'umd:stats', 'umd:main', 'umd:map', 'concat:all']);
 };

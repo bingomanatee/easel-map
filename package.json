@@ -23,7 +23,9 @@
     "grunt-contrib-concat": "~0.3.0",
     "grunt-contrib-uglify": "~0.2.4",
     "tap": "~0.4.6",
-    "node-static": "~0.7.2"
+    "node-static": "~0.7.2",
+    "grunt-umd": "~1.6.1",
+    "phantomjs": "~1.9.7-1"
   },
   "dependencies": {
     "perlin": "~1.0.0",

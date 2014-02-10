@@ -18,6 +18,13 @@ tap.test('draw_hex', function (draw_hex_test) {
         var ROW = -4;
         var COL = 6;
 
+        placement_test.test('perlin', function(perlin_test){
+
+
+           perlin_test.end();
+
+        });
+
         placement_test.test('at origin', function (ptao) {
 
             var placement = easel.EASEL_MAP.util.draw_hex.placement(0, 0, RADIUS, true);
