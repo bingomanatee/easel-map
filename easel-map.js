@@ -32,10 +32,6 @@ var EASEL_MAP = {
             s.push(args);
             return s.amean();
         }
-    },
-    _proto: {
-    },
-    class: {
     }
 };
 

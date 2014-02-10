@@ -53,8 +53,8 @@ module.exports = function (grunt) {
 
                 init_canvas: {
                   templates: 'unit',
-                    src: 'lib/util/init_canvas',
-                    dest: 'build/init_canvas',
+                    src: 'lib/util/init_canvas.js',
+                    dest: 'build/init_canvas.js',
                     globalAlias: 'init_canvas',
                     deps: {
                         'default': ['Canvas'],
@@ -85,6 +85,7 @@ module.exports = function (grunt) {
             concat: {
                 all: {
                     files: {
+                        'test_site/public/js/canvas.browser.js': ['build/init_canvas.js', 'build/create.js'],
                         'easel-map.js': ['build/index.umd.js'],
                         'easel-map.browser.js': [ 'build/underscore.js', 'build/Stats.js', 'build/index.umd.js'],
                         'test-site/public/js/easel-map.browser.js': [  'build/underscore.js', 'build/Stats.js', 'build/index.umd.js']
@@ -104,5 +105,5 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
 
     // Default task(s).
-    grunt.registerTask('default', ['umd:underscore', 'umd:create','umd:stats',  'concat:easelmap', 'umd:main',  'concat:all']);
+    grunt.registerTask('default', ['umd:underscore', 'umd:create', 'umd:init_canvas', 'umd:stats',  'concat:easelmap', 'umd:main',  'concat:all']);
 };

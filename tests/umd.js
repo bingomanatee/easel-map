@@ -1,6 +1,6 @@
 var tap = require('tap');
 
-var app = require('./../test_modules/app');
+var app = require('./../test-site/app');
 var phantom = require('node-phantom');
 var path = require('path');
 var my_path = path.resolve(__dirname, './../build/easel-map');
@@ -32,7 +32,7 @@ tap.test('testing UMD', {skip: 0}, function (test) {
             if (err) throw err;
             return ph.createPage(function (err, page) {
                 if (err) throw err;
-                page.open('http://localhost:8123/index.html', function (err, status) {
+                page.open('http://localhost:8080/phantomjs.html', function (err, status) {
                     if (err) throw err;
                     console.log('status: ', status);
 
