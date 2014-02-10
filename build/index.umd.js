@@ -38,6 +38,18 @@ var EASEL_MAP = {
     class: {
     }
 };
+
+EASEL_MAP.util.init_canvas =  function init_canvas(width, height){
+    if (typeof document != 'undefined'){
+        var canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+    } else {
+        canvas = new Canvas(width, height);
+    }
+
+    return canvas;
+}
 var _defaults = {
     top: -3250,
     bottom: 3250,
@@ -350,7 +362,7 @@ Layer.prototype = {
     },
 
     tile: function (x, y) {
-        return new EASEL_MAP.Layer_Tile(this, x, y);
+        return new EASEL_MAP.Tile(this, x, y);
     },
 
     add_tile_shapes: function (tile) {
@@ -589,5 +601,7 @@ Tile.prototype = {
     }
 
 };
+
+EASEL_MAP.Tile = Tile;
     return EASEL_MAP;
 }));

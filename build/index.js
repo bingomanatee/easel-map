@@ -1,18 +1,3 @@
-
-(function(root, factory) {
-    if(typeof exports === 'object') {
-        module.exports = factory(require('underscore'), require('canvas'), require('./Stats'), require('node-easel'), require, exports, module);
-    }
-    else if(typeof define === 'function' && define.amd) {
-        define(['_', 'Canvas', 'Stats', 'createjs', 'require', 'exports', 'module'], factory);
-    }
-    else {
-        var req = function(id) {return root[id];},
-            exp = root,
-            mod = {exports: exp};
-        root.EASEL_MAP = factory(root._, root.Canvas, root.Stats, root.createjs, req, exp, mod);
-    }
-}(this, function(_, Canvas, Stats, createjs, require, exports, module) {
 var EASEL_MAP = {
     util: {
         color: function (r, g, b) {
@@ -38,6 +23,18 @@ var EASEL_MAP = {
     class: {
     }
 };
+
+EASEL_MAP.util.init_canvas =  function init_canvas(width, height){
+    if (typeof document != 'undefined'){
+        var canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+    } else {
+        canvas = new Canvas(width, height);
+    }
+
+    return canvas;
+}
 var _defaults = {
     top: -3250,
     bottom: 3250,
@@ -350,7 +347,7 @@ Layer.prototype = {
     },
 
     tile: function (x, y) {
-        return new EASEL_MAP.Layer_Tile(this, x, y);
+        return new EASEL_MAP.Tile(this, x, y);
     },
 
     add_tile_shapes: function (tile) {
@@ -589,5 +586,5 @@ Tile.prototype = {
     }
 
 };
-    return EASEL_MAP;
-}));
+
+EASEL_MAP.Tile = Tile;

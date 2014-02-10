@@ -2,7 +2,7 @@ var st = require('node-static');
 //
 // Create a node-static server instance to serve the './public' folder
 //
-var file = new st.Server('./public');
+var file = new st.Server(__dirname + '/public');
 
 require('http').createServer(function (request, response) {
     console.log('started server...');

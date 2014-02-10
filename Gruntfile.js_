@@ -19,7 +19,7 @@ module.exports = function (grunt) {
                     'lib/map/render_layer.js',
                     'lib/map/refresh.js',
                     'lib/perlin_canvas/index.js',
-                    'lib/layer/Layer_Tile.js',
+                    'lib/layer/index.js',
                     'lib/layer/index.js',
                     'lib/hex/draw_hex.js',
                     //'lib/hex/render.js',

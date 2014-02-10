@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "perlin": "~1.0.0",
-    "underscore": "~1.5.2"
+    "underscore": "~1.5.2",
+    "node-easel": "~0.1.2"
   }
 }
