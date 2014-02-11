@@ -1,13 +1,12 @@
 var st = require('node-static');
 module.exports = function (done) {
-
+    var root = __dirname + '/public';
 //
 // Create a node-static server instance to serve the './public' folder
 //
-    var file = new st.Server(__dirname + '/public');
+    var file = new st.Server(root);
 
      var server = require('http').createServer(function (request, response) {
-        console.log('started server...');
         request.addListener('end',function () {
             //
             // Serve files!
@@ -17,6 +16,7 @@ module.exports = function (done) {
             file.serve(request, response);
         }).resume();
     }).listen(8080);
+    console.log('started server for root ' + root);
     done(server);
 };
 

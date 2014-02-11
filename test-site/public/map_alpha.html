@@ -1,0 +1,55 @@
+<html>
+
+<head>
+    <script language="javascript" src="js/easel-map.browser.js">
+    </script>
+</head>
+<body>
+<h1>Phantom.js page</h1>
+<script language="javascript">
+
+    var stage;
+
+    (function () {
+        var c = EASEL_MAP.util.init_canvas(500, 300); // document.getElementById('tiny-canvas');
+
+        document.body.appendChild(c);
+
+        stage = new createjs.Stage(c);
+
+        var map = new EASEL_MAP.Map({left: 2000, right: 2000, top: 1000, bottom: 1000});
+
+        var BOX_INC = 100;
+        var BOX_WIDTH = 80;
+        var BOX_COLR = 'red';
+
+        var layer = map.add_layer('boxes', {
+            add_tile_shapes: function (tile) {
+                var left = tile.left();
+                left -= left % BOX_INC;
+                var right = tile.right() + BOX_INC;
+                right -= right % BOX_INC;
+                var top = tile.top();
+                top -= BOX_INC;
+                var bottom = tile.bottom() + BOX_INC;
+                bottom -= bottom % BOX_INC;
+
+                var shape = new createjs.Shape();
+
+                tile.container().addChild(shape);
+
+                _.each(_.range(left, right, BOX_INC),
+                        function (x) {
+                            _.each(_.range(top, bottom, BOX_INC), function (y) {
+                                shape.graphics.f(BOX_COLR).dr(x, y, BOX_WIDTH, BOX_WIDTH).ef();
+                            })
+                        });
+            }
+        });
+
+        map.render({left: 25, top: 25, scale: 1}, stage);
+        stage.update();
+    })();
+</script>
+</body>
+</html>
