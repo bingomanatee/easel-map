@@ -10,46 +10,10 @@ module.exports = function (grunt) {
                     globalAlias: 'EASEL_MAP',
                     deps: {
                         'default': ['_', 'Canvas','Stats', 'createjs'],
-                        cjs: ['underscore', 'canvas', './Stats', 'node-easel']
+                        cjs: ['underscore', 'canvas', './lib/Stats', 'node-easel']
                     },
                     objectToExport: 'EASEL_MAP'
                 },
-/*
-                map: {
-                    template: 'unit',
-                    src: 'lib/map/index.js',
-                    dest: 'build/Map.js',
-                    deps: {
-                        'default': ['_', 'createjs' ],
-                        cjs: ['underscore', 'node-easel']
-                    },
-                    objectToExport: 'Map',
-                    globalAlias: 'EASEL_MAP.Map'
-                },
-
-                layer: {
-                    template: 'unit',
-                    src: 'lib/layer/index.js',
-                    dest: 'build/Layer.js',
-                    deps: {
-                        'default': ['_', 'createjs' ],
-                        cjs: ['underscore', 'node-easel']
-                    },
-                    objectToExport: 'Layer',
-                    globalAlias: 'Layer'
-                },
-
-                tile: {
-                    template: 'unit',
-                    src: 'lib/tile/index.js',
-                    dest: 'build/Tile.js',
-                    deps: {
-                        'default': ['_', 'createjs' ],
-                        cjs: ['underscore', 'node-easel']
-                    },
-                    objectToExport: 'Tile',
-                    globalAlias: 'Tile'
-                },*/
 
                 init_canvas: {
                   templates: 'unit',
@@ -65,7 +29,7 @@ module.exports = function (grunt) {
                 stats: {
                     template: 'unit',
                     src: 'lib/vendor/Stats.js',
-                    dest: 'build/Stats.js',
+                    dest: 'lib/Stats.js',
                     objectToExport: 'Stats',
                     globalAlias: 'Stats'
                 },

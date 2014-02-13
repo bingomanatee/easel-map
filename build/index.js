@@ -450,6 +450,8 @@ function Tile(layer, i, j) {
     this.loaded = false;
 }
 
+var _DEBUG = false;
+
 Tile.prototype = {
 
     /**
@@ -563,19 +565,19 @@ Tile.prototype = {
 
     contains: function (range) {
         if (this.left() >= range.right) {
-            console.log('left', this.left(), '>= range.right', range.right);
+            if (_DEBUG)       console.log('left', this.left(), '>= range.right', range.right);
             return false;
         }
         if (this.right() <= range.left) {
-            console.log('right', this.right(), '<= range.left', range.left);
+            if (_DEBUG)       console.log('right', this.right(), '<= range.left', range.left);
             return false;
         }
         if (this.top() >= range.bottom) {
-            console.log('top', this.top(), '>= range.bottom', range.bottom);
+            if (_DEBUG)       console.log('top', this.top(), '>= range.bottom', range.bottom);
             return false;
         }
         if (this.bottom() <= range.top) {
-            console.log('bottom', this.bottom(), '<= range.top', range.top);
+       if (_DEBUG)     console.log('bottom', this.bottom(), '<= range.top', range.top);
             return false;
         }
         return true;

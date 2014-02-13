@@ -1,6 +1,6 @@
 {
   "name": "easel-mapper",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "a generic tool for drawing layered maps in canvas and easel",
   "main": "index.js",
   "scripts": {
